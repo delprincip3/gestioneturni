@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>boschetto - Login</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style/output.css') }}">
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+  <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+    <div class="flex justify-center mb-4">
+      <img src="src/logoboschetto.jpeg" alt="Ortoplan Logo" class="h-12 w-12 sm:h-16 sm:w-16 lg:h-20 lg:w-20 rounded-full">
+    </div>
+   
+    <h2 class="text-xl font-semibold text-center mb-4">Accedi al tuo account</h2>
+    <form method="post" id="LoginForm">
+      {{ form.csrf_token }}
+      {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class="flashes text-red-600">
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+      {% endwith %}
+      <div class="mb-4">
+        <label for="email" class="block bg-white text-gray-700">Email</label>
+        {{ form.email(class=" bg-white w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600") }}
+      </div>
+      <div class="mb-6">
+        <label for="password" class="block bg-white text-gray-700">Password</label>
+        {{ form.password(type="password", class=" bg-white w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600") }}
+      </div>
+     
+      <button type="submit" class="w-full bg-violet-900 text-white py-2 rounded-lg hover:bg-violet-950">Login</button>
+      <div class="space-x-4 mt-4">
+        <a class="btn bg-violet-900 hover:bg-violet-950 text-white font-bold py-2  rounded-lg w-full" href="{{ url_for('index') }}">Torna alla pagina principale</a>
+      </div>
+    </form>
+</div>
+ 
+</body>
+</html>
