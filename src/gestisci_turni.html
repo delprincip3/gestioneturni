@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestisci Turni</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style/output.css') }}">
+</head>
+<body>
+    <h1>Gestisci Turni</h1>
+    <form method="POST">
+        <label for="data">Data:</label>
+        <input type="date" id="data" name="data" required>
+        <br>
+        <label for="turno">Turno:</label>
+        <input type="text" id="turno" name="turno" required>
+        <br>
+        <label for="tipo">Tipo:</label>
+        <input type="text" id="tipo" name="tipo" required>
+        <br>
+        <button type="submit">Aggiungi Turno</button>
+    </form>
+    <h2>Turni Esistenti</h2>
+    <ul>
+        {% for turno in turni %}
+            <li>{{ turno.data }} - {{ turno.turno }} - {{ turno.tipo }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
