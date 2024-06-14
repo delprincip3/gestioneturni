@@ -4,27 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestisci Turni</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style/output.css') }}">
+    <link href="{{ url_for('static', filename='output.css') }}" rel="stylesheet">
 </head>
-<body>
-    <h1>Gestisci Turni</h1>
-    <form method="POST">
-        <label for="data">Data:</label>
-        <input type="date" id="data" name="data" required>
-        <br>
-        <label for="turno">Turno:</label>
-        <input type="text" id="turno" name="turno" required>
-        <br>
-        <label for="tipo">Tipo:</label>
-        <input type="text" id="tipo" name="tipo" required>
-        <br>
-        <button type="submit">Aggiungi Turno</button>
-    </form>
-    <h2>Turni Esistenti</h2>
-    <ul>
-        {% for turno in turni %}
-            <li>{{ turno.data }} - {{ turno.turno }} - {{ turno.tipo }}</li>
-        {% endfor %}
-    </ul>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-6 bg-white shadow-lg rounded-lg">
+        <h1 class="text-2xl font-bold text-center mb-6">Gestisci Turni</h1>
+        <form method="POST" class="space-y-4">
+            {{ form.hidden_tag() }}
+            <div class="form-group">
+                <label for="data" class="block text-sm font-medium text-gray-700">Data:</label>
+                {{ form.data(class_='input input-bordered w-full') }}
+            </div>
+            <div class="form-group">
+                <label for="turno" class="block text-sm font-medium text-gray-700">Turno:</label>
+                {{ form.turno(class_='input input-bordered w-full') }}
+            </div>
+            <div class="form-group">
+                <label for="tipo" class="block text-sm font-medium text-gray-700">Tipo:</label>
+                {{ form.tipo(class_='input input-bordered w-full') }}
+            </div>
+            <div class="form-group">
+                <label for="utenza_id" class="block text-sm font-medium text-gray-700">Utente:</label>
+                {{ form.utenza_id(class_='input input-bordered w-full') }}
+            </div>
+            <button type="submit" class="btn btn-primary w-full">Aggiungi Turno</button>
+        </form>
+        <h2 class="text-xl font-bold text-center mt-6">Turni Esistenti</h2>
+        <ul class="list-group mt-4 space-y-2">
+            {% for turno in turni %}
+                <li class="p-4 bg-white rounded-lg shadow">{{ turno.data }} - {{ turno.turno }} - {{ turno.tipo }} - {{ turno.utenza.nome }} {{ turno.utenza.cognome }}</li>
+            {% endfor %}
+        </ul>
+    </div>
 </body>
 </html>

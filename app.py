@@ -1,10 +1,8 @@
-from flask import Flask, render_template, request, flash, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, flash, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from datetime import timedelta
-from forms import LoginForm, RegisterForm, EliminaUtenteForm, ModificaUtenteForm
-from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import timedelta, datetime
+from forms import LoginForm, RegisterForm, EliminaUtenteForm, ModificaUtenteForm, GestisciTurniForm
 
 app = Flask(__name__, template_folder='src', static_folder='src')
 app.permanent_session_lifetime = timedelta(minutes=5)
@@ -54,7 +52,7 @@ def login():
         password = form.password.data
         utente = Utenza.query.filter_by(email=email).first()
 
-        if utente and check_password_hash(utente.password, password):
+        if utente and utente.password == password:
             session['user_id'] = utente.id
             session.permanent = True
             flash('Login eseguito con successo!', 'success')
@@ -82,24 +80,22 @@ def gestisci_turni():
         flash('Devi essere loggato per vedere questa pagina.', 'danger')
         return redirect(url_for('login'))
 
-    user_id = session['user_id']
-    utente = Utenza.query.get(user_id)
+    form = GestisciTurniForm()
+    form.utenza_id.choices = [(utente.id, f"{utente.nome} {utente.cognome}") for utente in Utenza.query.all()]
     
-    if request.method == 'POST':
-        data = request.form.get('data')
-        turno = request.form.get('turno')
-        tipo = request.form.get('tipo')
+    if request.method == 'POST' and form.validate_on_submit():
+        data = form.data.data
+        turno = form.turno.data
+        tipo = form.tipo.data
+        utenza_id = form.utenza_id.data
 
-        if data and turno and tipo:
-            nuovo_turno = Turno(data=datetime.strptime(data, '%Y-%m-%d'), turno=turno, tipo=tipo, utenza_id=user_id)
-            db.session.add(nuovo_turno)
-            db.session.commit()
-            flash('Turno aggiunto con successo!', 'success')
-        else:
-            flash('Tutti i campi sono obbligatori.', 'danger')
+        nuovo_turno = Turno(data=data, turno=turno, tipo=tipo, utenza_id=utenza_id)
+        db.session.add(nuovo_turno)
+        db.session.commit()
+        flash('Turno aggiunto con successo!', 'success')
 
-    turni = Turno.query.filter_by(utenza_id=user_id).all()
-    return render_template('gestisci_turni.html', turni=turni)
+    turni = Turno.query.all()
+    return render_template('gestisci_turni.html', form=form, turni=turni)
 
 if __name__ == "__main__":
     app.run(debug=True)
