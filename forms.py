@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, SelectField, DateField
+from wtforms import StringField, PasswordField, SubmitField, SelectField, DateField,HiddenField
 from wtforms.validators import DataRequired, Email
 
 class RegisterForm(FlaskForm):
@@ -15,17 +15,18 @@ class LoginForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()])
     submit = SubmitField('Login')
 
-class EliminaUtenteForm(FlaskForm):
-    submit = SubmitField('Elimina')
-
 class ModificaUtenteForm(FlaskForm):
+    id = HiddenField('ID')
     tipo = SelectField('Tipo Utente', choices=[('admin', 'Admin'), ('user', 'User')], validators=[DataRequired()])
     nome = StringField('Nome', validators=[DataRequired()])
     cognome = StringField('Cognome', validators=[DataRequired()])
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired()])
-    submit = SubmitField('Aggiungi Utente')
+    submit = SubmitField('Salva Modifiche')
 
+class EliminaUtenteForm(FlaskForm):
+    id = HiddenField('ID')
+    submit = SubmitField('Elimina')
 class GestisciTurniForm(FlaskForm):
     data = DateField('Data', format='%Y-%m-%d', validators=[DataRequired()])
     turno = SelectField('Turno', choices=[('mattina', 'Mattina'), ('sera', 'Sera'), ('doppio turno', 'Doppio Turno')], validators=[DataRequired()])

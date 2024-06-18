@@ -103,22 +103,37 @@ def gestisci_utenti():
         flash('Devi essere loggato per vedere questa pagina.', 'danger')
         return redirect(url_for('login'))
 
-    form = ModificaUtenteForm()
-    if request.method == 'POST' and form.validate_on_submit():
-        tipo = form.tipo.data
-        nome = form.nome.data
-        cognome = form.cognome.data
-        email = form.email.data
-        password = form.password.data
+    modifica_form = ModificaUtenteForm()
+    elimina_form = EliminaUtenteForm()
 
-        nuovo_utente = Utenza(tipo=tipo, nome=nome, cognome=cognome, email=email, password=password)
-        db.session.add(nuovo_utente)
-        db.session.commit()
-        flash('Nuovo utente aggiunto con successo!', 'success')
+    if request.method == 'POST':
+        if 'modifica_submit' in request.form and modifica_form.validate_on_submit():
+            utente_id = request.form.get('id')
+            utente = Utenza.query.get(utente_id)
+            if utente:
+                utente.tipo = modifica_form.tipo.data
+                utente.nome = modifica_form.nome.data
+                utente.cognome = modifica_form.cognome.data
+                utente.email = modifica_form.email.data
+                utente.password = modifica_form.password.data
+                db.session.commit()
+                flash('Utente modificato con successo!', 'success')
+
+        elif 'elimina_submit' in request.form and elimina_form.validate_on_submit():
+            utente_id = request.form.get('id')
+            utente = Utenza.query.get(utente_id)
+            if utente:
+                Turno.query.filter_by(utenza_id=utente_id).delete()
+                db.session.delete(utente)
+                db.session.commit()
+                flash('Utente eliminato con successo!', 'success')
+
         return redirect(url_for('gestisci_utenti'))
 
     utenti = Utenza.query.all()
-    return render_template('gestisci_utenti.html', form=form, utenti=utenti)
+    return render_template('gestisci_utenti.html', modifica_form=modifica_form, elimina_form=elimina_form, utenti=utenti)
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)
