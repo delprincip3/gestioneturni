@@ -19,11 +19,12 @@ class EliminaUtenteForm(FlaskForm):
     submit = SubmitField('Elimina')
 
 class ModificaUtenteForm(FlaskForm):
-    tipo = SelectField('Tipo', choices=[('Admin', 'Admin'), ('User', 'User')], validators=[DataRequired()])
+    tipo = SelectField('Tipo Utente', choices=[('admin', 'Admin'), ('user', 'User')], validators=[DataRequired()])
     nome = StringField('Nome', validators=[DataRequired()])
     cognome = StringField('Cognome', validators=[DataRequired()])
     email = StringField('Email', validators=[DataRequired(), Email()])
-    submit = SubmitField('Salva')
+    password = PasswordField('Password', validators=[DataRequired()])
+    submit = SubmitField('Aggiungi Utente')
 
 class GestisciTurniForm(FlaskForm):
     data = DateField('Data', format='%Y-%m-%d', validators=[DataRequired()])

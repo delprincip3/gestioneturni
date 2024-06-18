@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestisci Utenti - Il Boschetto</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style/output.css') }}">
+</head>
+<body>
+    <header class="bg-gray-800 text-white shadow-lg fixed w-full z-50">
+        <div class="container mx-auto flex justify-between items-center py-4 px-6">
+            <div class="flex items-center">
+                <img src="{{ url_for('static', filename='logoboschetto.jpeg') }}" alt="Il Boschetto Logo" class="h-12 w-12 sm:h-16 sm:w-16 lg:h-20 lg:w-20 rounded-full">
+                <h1 class="text-2xl font-bold ml-4">Il Boschetto - Gestione Utenti</h1>
+            </div>
+            <nav class="hidden md:flex space-x-6">
+                <a href="{{ url_for('dashboard_admin') }}" class="hover:text-gray-400">Dashboard</a>
+                <a href="{{ url_for('gestisci_turni') }}" class="hover:text-gray-400">Gestione Turni</a>
+                <a href="{{ url_for('login') }}" class="hover:text-gray-400">Logout</a>
+            </nav>
+            <div class="md:hidden">
+                <button class="menu-toggle text-gray-200 hover:text-gray-400 focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <nav class="mobile-menu hidden md:hidden bg-gray-800">
+            <a href="{{ url_for('dashboard_admin') }}" class="block px-6 py-2 hover:bg-gray-700">Dashboard</a>
+            <a href="{{ url_for('gestisci_turni') }}" class="block px-6 py-2 hover:bg-gray-700">Gestione Turni</a>
+            <a href="{{ url_for('login') }}" class="block px-6 py-2 hover:bg-gray-700">Logout</a>
+        </nav>
+    </header>
+
+    <div class="pt-20 min-h-screen bg-gray-100">
+        <div class="container mx-auto py-10">
+            <div class="bg-white shadow-md rounded-lg p-6">
+                <h2 class="text-2xl font-bold mb-4">Gestione Utenti</h2>
+                <form method="POST" action="{{ url_for('gestisci_utenti') }}">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-4">
+                        <label class="block text-gray-700">Tipo Utente:</label>
+                        {{ form.tipo(class="form-input mt-1 block w-full") }}
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700">Nome:</label>
+                        {{ form.nome(class="form-input mt-1 block w-full") }}
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700">Cognome:</label>
+                        {{ form.cognome(class="form-input mt-1 block w-full") }}
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700">Email:</label>
+                        {{ form.email(class="form-input mt-1 block w-full") }}
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700">Password:</label>
+                        {{ form.password(class="form-input mt-1 block w-full") }}
+                    </div>
+                    <button type="submit" class="bg-violet-900 text-white px-4 py-2 rounded-lg hover:bg-violet-950">Aggiungi Utente</button>
+                </form>
+                <div class="mt-6">
+                    <h3 class="text-xl font-bold mb-4">Elenco Utenti</h3>
+                    <ul>
+                        {% for utente in utenti %}
+                            <li>{{ utente.nome }} {{ utente.cognome }} - {{ utente.email }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.querySelector('.menu-toggle').addEventListener('click', function() {
+            document.querySelector('.mobile-menu').classList.toggle('hidden');
+        });
+    </script>
+    <!-- Footer -->
+    <footer class="bg-violet-950 text-white py-4 px-6 text-center">
+        <p class="text-sm">Copyright © 2024 - All rights reserved by delprincip3</p>
+    </footer>
+</body>
+</html>

@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, flash, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from datetime import timedelta, datetime
+from datetime import timedelta
 from forms import LoginForm, RegisterForm, EliminaUtenteForm, ModificaUtenteForm, GestisciTurniForm
 
 app = Flask(__name__, template_folder='src', static_folder='src')
@@ -96,6 +96,29 @@ def gestisci_turni():
 
     turni = Turno.query.all()
     return render_template('gestisci_turni.html', form=form, turni=turni)
+
+@app.route('/gestisci_utenti', methods=['GET', 'POST'])
+def gestisci_utenti():
+    if 'user_id' not in session:
+        flash('Devi essere loggato per vedere questa pagina.', 'danger')
+        return redirect(url_for('login'))
+
+    form = ModificaUtenteForm()
+    if request.method == 'POST' and form.validate_on_submit():
+        tipo = form.tipo.data
+        nome = form.nome.data
+        cognome = form.cognome.data
+        email = form.email.data
+        password = form.password.data
+
+        nuovo_utente = Utenza(tipo=tipo, nome=nome, cognome=cognome, email=email, password=password)
+        db.session.add(nuovo_utente)
+        db.session.commit()
+        flash('Nuovo utente aggiunto con successo!', 'success')
+        return redirect(url_for('gestisci_utenti'))
+
+    utenti = Utenza.query.all()
+    return render_template('gestisci_utenti.html', form=form, utenti=utenti)
 
 if __name__ == "__main__":
     app.run(debug=True)
