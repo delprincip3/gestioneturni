@@ -38,51 +38,49 @@
             <div class="bg-white shadow-md rounded-lg p-6">
                 <h2 class="text-2xl font-bold mb-4">Gestione Utenti</h2>
                 <!-- Form per aggiungere nuovi utenti -->
-                <form method="POST" action="{{ url_for('gestisci_utenti') }}">
-                    {{ modifica_form.hidden_tag() }}
+                <form method="POST" action="{{ url_for('aggiungi_utente') }}">
+                    {{ register_form.hidden_tag() }}
+                    {{ register_form.csrf_token }}
                     <div class="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-gray-700">Tipo Utente:</label>
-                            {{ modifica_form.tipo(class="form-input mt-1 block w-full", id="modifica_tipo") }}
+                            {{ register_form.tipo(class="form-input mt-1 block w-full", id="register_tipo") }}
                         </div>
                         <div>
                             <label class="block text-gray-700">Nome:</label>
-                            {{ modifica_form.nome(class="form-input mt-1 block w-full", id="modifica_nome") }}
+                            {{ register_form.nome(class="form-input mt-1 block w-full", id="register_nome") }}
                         </div>
                         <div>
                             <label class="block text-gray-700">Cognome:</label>
-                            {{ modifica_form.cognome(class="form-input mt-1 block w-full", id="modifica_cognome") }}
+                            {{ register_form.cognome(class="form-input mt-1 block w-full", id="register_cognome") }}
                         </div>
                         <div>
                             <label class="block text-gray-700">Email:</label>
-                            {{ modifica_form.email(class="form-input mt-1 block w-full", id="modifica_email") }}
+                            {{ register_form.email(class="form-input mt-1 block w-full", id="register_email") }}
                         </div>
                         <div>
                             <label class="block text-gray-700">Password:</label>
-                            {{ modifica_form.password(class="form-input mt-1 block w-full", id="modifica_password") }}
+                            {{ register_form.password(class="form-input mt-1 block w-full", id="register_password") }}
                         </div>
                     </div>
-                    <button type="submit" name="modifica_submit" class="bg-violet-900 text-white px-4 py-2 rounded-lg mt-4 md:mt-0 md:col-span-2 hover:bg-violet-950">Aggiungi Utente</button>
+                    <button type="submit" name="register_submit" class="bg-violet-900 text-white px-4 py-2 rounded-lg mt-4 md:mt-0 md:col-span-2 hover:bg-violet-950">Aggiungi Utente</button>
                 </form>
+
                 <!-- Elenco Utenti -->
                 <div class="mt-6">
                     <h3 class="text-xl font-bold mb-4">Elenco Utenti</h3>
                     <ul>
                         {% for utente in utenti %}
-                            <li class="flex items-center justify-between mb-4">
+                            <li id="utente-{{ utente.id }}" class="flex items-center justify-between mb-4">
                                 <span>{{ utente.nome }} {{ utente.cognome }} - {{ utente.email }}</span>
                                 <!-- Form per modificare utente -->
-                                <form method="POST" action="{{ url_for('gestisci_utenti') }}" style="display: inline-block;">
+                                <form method="POST" action="{{ url_for('modifica_utente') }}" style="display: inline-block;">
                                     {{ modifica_form.hidden_tag() }}
                                     <input type="hidden" name="id" value="{{ utente.id }}">
                                     <button type="submit" name="modifica_submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 mt-2 md:mt-0">Modifica</button>
                                 </form>
-                                <!-- Form per eliminare utente -->
-                                <form method="POST" action="{{ url_for('gestisci_utenti') }}" style="display: inline-block;">
-                                    {{ elimina_form.hidden_tag() }}
-                                    <input type="hidden" name="id" value="{{ utente.id }}">
-                                    <button type="submit" name="elimina_submit" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 mt-2 md:mt-0 ml-2">Elimina</button>
-                                </form>
+                                <!-- Pulsante per eliminare utente -->
+                                <button onclick="eliminaUtente({{ utente.id }})" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 mt-2 md:mt-0 ml-2">Elimina</button>
                             </li>
                         {% endfor %}
                     </ul>
@@ -91,11 +89,42 @@
         </div>
     </div>
 
+
     <script>
         document.querySelector('.menu-toggle').addEventListener('click', function() {
             document.querySelector('.mobile-menu').classList.toggle('hidden');
         });
+
+        async function eliminaUtente(userId) {
+            const confirmed = confirm("Sei sicuro di voler eliminare questo utente?");
+            if (!confirmed) {
+                return;
+            }
+
+            try {
+                const response = await fetch("{{ url_for('elimina_utente') }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": "{{ csrf_token() }}"  // Use csrf_token directly in template
+                    },
+                    body: JSON.stringify({ id: userId })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert("Utente eliminato con successo!");
+                    document.getElementById(`utente-${userId}`).remove();
+                } else {
+                    alert("Errore nell'eliminazione dell'utente.");
+                }
+            } catch (error) {
+                console.error("Errore:", error);
+                alert("Errore nella comunicazione con il server.");
+            }
+        }
     </script>
+    
     <!-- Footer -->
     <footer class="bg-violet-950 text-white py-4 px-6 text-center">
         <p class="text-sm">Copyright © 2024 - All rights reserved by delprincip3</p>
