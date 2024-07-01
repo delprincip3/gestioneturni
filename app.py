@@ -71,6 +71,13 @@ def login():
 
     return render_template('login.html', form=form)
 
+@app.route('/logout')
+def logout():
+    session.pop('user_id', None)
+    flash('Logout eseguito con successo!', 'success')
+    return redirect(url_for('login'))
+
+
 @app.route('/dashboardadmin')
 def dashboard_admin():
     return render_template('dashboard_admin.html')
@@ -181,6 +188,18 @@ def aggiungi_utente():
         flash('Errore nella validazione del form. Riprova.', 'danger')
 
     return redirect(url_for('gestisci_utenti'))
+
+@app.route('/miei_turni')
+def miei_turni():
+    if 'user_id' not in session:
+        flash('Devi essere loggato per vedere questa pagina.', 'danger')
+        return redirect(url_for('login'))
+    
+    user_id = session['user_id']
+    utente = Utenza.query.get(user_id)
+    turni = Turno.query.filter_by(utenza_id=user_id).all()
+    return render_template('miei_turni.html', utente=utente, turni=turni)
+
 
 
 if __name__ == "__main__":

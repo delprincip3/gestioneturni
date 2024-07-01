@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>I Miei Turni - Il Boschetto</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style/output.css') }}">
+</head>
+<body>
+    <header class="bg-gray-800 text-white shadow-lg fixed w-full z-50">
+        <div class="container mx-auto flex justify-between items-center py-4 px-6">
+            <div class="flex items-center">
+                <img src="{{ url_for('static', filename='logoboschetto.jpeg') }}" alt="Il Boschetto Logo" class="h-12 w-12 sm:h-16 sm:w-16 lg:h-20 lg:w-20 rounded-full">
+                <h1 class="text-2xl font-bold ml-4">Il Boschetto - User</h1>
+            </div>
+            <nav class="hidden md:flex space-x-6">
+                <a href="{{ url_for('dashboard_admin') }}" class="hover:text-gray-400">Dashboard</a>
+                <a href="{{ url_for('gestisci_turni') }}" class="hover:text-gray-400">Gestione Turni</a>
+                <a href="{{ url_for('logout') }}" class="hover:text-gray-400">Logout</a>
+            </nav>
+            <div class="md:hidden">
+                <button class="menu-toggle text-gray-200 hover:text-gray-400 focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <nav class="mobile-menu hidden md:hidden bg-gray-800">
+            <a href="{{ url_for('dashboard_admin') }}" class="block px-6 py-2 hover:bg-gray-700">Dashboard</a>
+            <a href="{{ url_for('gestisci_turni') }}" class="block px-6 py-2 hover:bg-gray-700">Gestione Turni</a>
+            <a href="{{ url_for('logout') }}" class="block px-6 py-2 hover:bg-gray-700">Logout</a>
+        </nav>
+    </header>
+
+    <div class="pt-20 min-h-screen bg-gray-100">
+        <div class="container mx-auto py-10">
+            <div class="bg-white shadow-md rounded-lg p-6">
+                <h2 class="text-2xl font-bold mb-4">I Miei Turni</h2>
+                <h3 class="text-xl font-semibold mb-2">Benvenuto, {{ utente.nome }} {{ utente.cognome }}</h3>
+
+                <table class="min-w-full leading-normal">
+                    <thead>
+                        <tr>
+                            <th class="px-6 py-3 bg-gray-200 text-gray-700 border-b border-gray-300">Data</th>
+                            <th class="px-6 py-3 bg-gray-200 text-gray-700 border-b border-gray-300">Turno</th>
+                            <th class="px-6 py-3 bg-gray-200 text-gray-700 border-b border-gray-300">Tipo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for turno in turni %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">{{ turno.data }}</td>
+                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">{{ turno.turno }}</td>
+                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-300">{{ turno.tipo }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-gray-800 text-white text-center py-4">
+        <p>Copyright © 2024 - Il Boschetto</p>
+    </footer>
+
+    <script>
+        document.querySelector('.menu-toggle').addEventListener('click', function() {
+            document.querySelector('.mobile-menu').classList.toggle('hidden');
+        });
+    </script>
+</body>
+</html>

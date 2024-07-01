@@ -15,9 +15,9 @@
             </div>
             <nav class="hidden md:flex space-x-6">
                 <a href="#" class="hover:text-gray-400">Home</a>
-                <a href="#" class="hover:text-gray-400">I miei turni</a>
+                <a href="{{ url_for('miei_turni') }}" class="hover:text-gray-400">I miei turni</a>
                 <a href="#" class="hover:text-gray-400">Profilo</a>
-                <a href="#" class="hover:text-gray-400">Logout</a>
+                <a href="{{ url_for('logout') }}" class="hover:text-gray-400">Logout</a>
             </nav>
             <div class="md:hidden">
                 <button class="menu-toggle text-gray-200 hover:text-gray-400 focus:outline-none">
