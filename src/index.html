@@ -10,11 +10,11 @@
     <header class="bg-gray-800 text-white shadow-lg fixed w-full z-50">
         <div class="container mx-auto flex justify-between items-center py-4 px-6">
             <div class="flex items-center">
-                <img src="src/logoboschetto.jpeg" alt="Ortoplan Logo" class="h-12 w-12 sm:h-16 sm:w-16 lg:h-20 lg:w-20 rounded-full">
+                <img src="src/logoboschetto.jpeg" alt="Boschetto Logo" class="h-12 w-12 sm:h-16 sm:w-16 lg:h-20 lg:w-20 rounded-full">
                 
             </div>
             <nav class="hidden md:flex space-x-6">
-                <a href="#" class="hover:text-gray-400">Home</a>
+                <a href="{{ url_for('login') }}" class="hover:text-gray-400">Login</a>
               
             </nav>
             <div class="md:hidden">
@@ -26,7 +26,7 @@
             </div>
         </div>
         <nav class="mobile-menu hidden md:hidden bg-gray-800">
-            <a href="#" class="block px-6 py-2 hover:bg-gray-700">Home</a>
+            <a href="{{ url_for('login') }}"class="block px-6 py-2 hover:bg-gray-700">Login</a>
            
         </nav>
     </header>

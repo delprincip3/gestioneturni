@@ -122,28 +122,7 @@ def gestisci_utenti():
     utenti = Utenza.query.all()
     return render_template('gestisci_utenti.html', modifica_form=modifica_form, elimina_form=elimina_form,register_form=register_form, utenti=utenti)
 
-@app.route('/modifica_utente', methods=['POST'])
-def modifica_utente():
-    if 'user_id' not in session:
-        flash('Devi essere loggato per vedere questa pagina.', 'danger')
-        return redirect(url_for('login'))
-        
-    modifica_form = ModificaUtenteForm()
-    if modifica_form.validate_on_submit():
-        utente_id = request.form.get('id')
-        utente = Utenza.query.get(utente_id)
-        if utente:
-            utente.tipo = modifica_form.tipo.data
-            utente.nome = modifica_form.nome.data
-            utente.cognome = modifica_form.cognome.data
-            utente.email = modifica_form.email.data
-            utente.password = modifica_form.password.data
-            db.session.commit()
-            flash('Utente modificato con successo!', 'success')
-    else:
-        flash('Errore nella modifica dell\'utente.', 'danger')
 
-    return redirect(url_for('gestisci_utenti'))
 
 @app.route('/elimina_utente', methods=['POST'])
 def elimina_utente():

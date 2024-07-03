@@ -29,7 +29,7 @@
         </div>
         <nav class="mobile-menu hidden md:hidden bg-gray-800">
             <a href="#" class="block px-6 py-2 hover:bg-gray-700">Home</a>
-            <a href="#" class="block px-6 py-2 hover:bg-gray-700">I miei turni</a>
+            <a href="{{ url_for('miei_turni') }}" class="block px-6 py-2 hover:bg-gray-700">I miei turni</a>
             <a href="#" class="block px-6 py-2 hover:bg-gray-700">Profilo</a>
             <a href="#" class="block px-6 py-2 hover:bg-gray-700">Logout</a>
         </nav>
@@ -44,13 +44,9 @@
                     <div class="bg-gray-200 p-4 rounded-lg">
                         <h3 class="text-xl font-semibold">I miei turni</h3>
                         <p class="mt-2">Visualizza i tuoi turni di lavoro.</p>
-                        <a href="#" class="mt-4 inline-block bg-violet-900 text-white px-4 py-2 rounded-lg hover:bg-violet-950">Vai</a>
+                        <a href="{{ url_for('miei_turni') }}" class="mt-4 inline-block bg-violet-900 text-white px-4 py-2 rounded-lg hover:bg-violet-950">Vai</a>
                     </div>
-                    <div class="bg-gray-200 p-4 rounded-lg">
-                        <h3 class="text-xl font-semibold">Profilo</h3>
-                        <p class="mt-2">Gestisci le informazioni del tuo profilo.</p>
-                        <a href="#" class="mt-4 inline-block bg-violet-900 text-white px-4 py-2 rounded-lg hover:bg-violet-950">Vai</a>
-                    </div>
+                   
                 </div>
             </div>
         </div>
