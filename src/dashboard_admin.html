@@ -7,11 +7,14 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style/output.css') }}">
 </head>
 <body>
-    <header class="bg-gray-800 text-white shadow-lg fixed w-full z-50">
+    <header class="bg-gradient-to-r from-violet-600 to-violet-900 text-white shadow-lg fixed w-full z-50 backdrop-blur-md">
         <div class="container mx-auto flex justify-between items-center py-4 px-6">
-            <div class="flex items-center">
-                <img src="{{ url_for('static', filename='logoboschetto.jpeg') }}" alt="Il Boschetto Logo" class="h-12 w-12 sm:h-16 sm:w-16 lg:h-20 lg:w-20 rounded-full">
-                <h1 class="text-2xl font-bold ml-4">Il Boschetto - Admin</h1>
+            <div class="flex items-center space-x-4">
+                <img src="{{ url_for('static', filename='logoboschetto.jpeg') }}" alt="Il Boschetto Logo" 
+                     class="h-12 w-12 sm:h-16 sm:w-16 lg:h-20 lg:w-20 rounded-full border-2 border-white/30 shadow-xl">
+                <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-violet-200">
+                    Il Boschetto
+                </h1>
             </div>
             <nav class="hidden md:flex space-x-6">
                
@@ -35,23 +38,23 @@
         </nav>
     </header>
 
-    <div class="pt-20 min-h-screen bg-gray-100">
-        <div class="container mx-auto py-10">
-            <div class="bg-white shadow-md rounded-lg p-6">
+    <div class="pt-20 min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+        <div class="container mx-auto py-10 px-4">
+            <div class="bg-white/80 backdrop-blur-xl shadow-xl rounded-2xl p-6 border border-gray-100">
                 <h2 class="text-2xl font-bold mb-4">Benvenuto nella Dashboard Admin</h2>
                 <p class="mb-4">Gestisci utenti e turni dal pannello di controllo.</p>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-gray-200 p-4 rounded-lg">
+                    <div class="bg-white/90 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-100">
                         <h3 class="text-xl font-semibold">Gestione Utenti</h3>
                         <p class="mt-2">Aggiungi o elimina utenti.</p>
                         <a href="{{ url_for('gestisci_utenti') }}" class="mt-4 inline-block bg-violet-900 text-white px-4 py-2 rounded-lg hover:bg-violet-950">Vai</a>
                     </div>
-                    <div class="bg-gray-200 p-4 rounded-lg">
+                    <div class="bg-white/90 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-100">
                         <h3 class="text-xl font-semibold">Gestione Turni</h3>
                         <p class="mt-2">Visualizza e gestisci i turni del personale.</p>
                         <a href="{{ url_for('gestisci_turni') }}" class="mt-4 inline-block bg-violet-900 text-white px-4 py-2 rounded-lg hover:bg-violet-950">Vai</a>
                     </div>
-                    <div class="bg-gray-200 p-4 rounded-lg">
+                    <div class="bg-white/90 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-100">
                         <h3 class="text-xl font-semibold">Miei Turni</h3>
                         <p class="mt-2">Visualizza i miei turni personali.</p>
                         <p class="mt-2">**Entrando in questa pagina passerai dalla dashboard admin a quella User.</p>
@@ -68,8 +71,8 @@
         });
     </script>
         <!-- Footer -->
- <footer class="bg-violet-950 text-white py-4 px-6 text-center">
-    <p class="text-sm">Copyright © 2024 - All rights reserved by delprincip3</p>
+ <footer class="bg-gradient-to-r from-violet-800 to-violet-950 text-white py-6 px-6 text-center shadow-lg">
+    <p class="text-sm opacity-80">Copyright © 2024 - All rights reserved by delprincip3</p>
 </footer>
 </body>
 </html>

@@ -7,7 +7,7 @@
     <link href="{{ url_for('static', filename='style/output.css') }}" rel="stylesheet">
 </head>
 <body>
-    <header class="bg-gray-800 text-white shadow-lg fixed w-full z-50">
+    <header class="bg-gradient-to-r from-violet-600 to-violet-900 text-white shadow-lg fixed w-full z-50 backdrop-blur-md">
         <div class="container mx-auto flex justify-between items-center py-4 px-6">
             <div class="flex items-center">
                 <img src="{{ url_for('static', filename='logoboschetto.jpeg') }}" alt="Il Boschetto Logo" class="h-12 w-12 sm:h-16 sm:w-16 lg:h-20 lg:w-20 rounded-full">
@@ -33,53 +33,48 @@
         </nav>
     </header>
 
-    <div class="pt-20 min-h-screen bg-gray-100">
-        <div class="container mx-auto py-10">
-            <div class="bg-white shadow-md rounded-lg p-6">
-                <h2 class="text-2xl font-bold mb-4">Gestione Utenti</h2>
-                <!-- Form per aggiungere nuovi utenti -->
-                <form method="POST" action="{{ url_for('aggiungi_utente') }}">
-                    {{ register_form.hidden_tag() }}
-                    {{ register_form.csrf_token }}
-                    <div class="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-gray-700">Tipo Utente:</label>
-                            {{ register_form.tipo(class="form-input mt-1 block w-full", id="register_tipo") }}
-                        </div>
-                        <div>
-                            <label class="block text-gray-700">Nome:</label>
-                            {{ register_form.nome(class="form-input mt-1 block w-full", id="register_nome") }}
-                        </div>
-                        <div>
-                            <label class="block text-gray-700">Cognome:</label>
-                            {{ register_form.cognome(class="form-input mt-1 block w-full", id="register_cognome") }}
-                        </div>
-                        <div>
-                            <label class="block text-gray-700">Email:</label>
-                            {{ register_form.email(class="form-input mt-1 block w-full", id="register_email") }}
-                        </div>
-                        <div>
-                            <label class="block text-gray-700">Password:</label>
-                            {{ register_form.password(class="form-input mt-1 block w-full", id="register_password") }}
-                        </div>
-                    </div>
-                    <button type="submit" name="register_submit" class="bg-violet-900 text-white px-4 py-2 rounded-lg mt-4 md:mt-0 md:col-span-2 hover:bg-violet-950">Aggiungi Utente</button>
-                </form>
-
+    <div class="pt-20 min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+        <div class="container mx-auto py-10 px-4">
+            <div class="bg-white/80 backdrop-blur-xl shadow-xl rounded-2xl p-6 border border-gray-100">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Gestione Utenti</h2>
+                    <button onclick="showAddUserForm()" 
+                            class="bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 
+                                   text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl 
+                                   transition-all duration-200 flex items-center justify-center space-x-2">
+                        <span>Aggiungi Utente</span>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                    </button>
+                </div>
+                
                 <!-- Elenco Utenti -->
-                <div class="mt-6">
-                    <h3 class="text-xl font-bold mb-4">Elenco Utenti</h3>
-                    <ul>
+                <div class="mt-8">
+                    <h3 class="text-xl font-semibold mb-6 text-gray-800 dark:text-white">Elenco Utenti</h3>
+                    <div class="space-y-4">
                         {% for utente in utenti %}
-                            <li id="utente-{{ utente.id }}" class="flex items-center justify-between mb-4">
-                                <span>{{ utente.nome }} {{ utente.cognome }} - {{ utente.email }}</span>
-                                <!-- Form per modificare utente -->
-                               
-                                <!-- Pulsante per eliminare utente -->
-                                <button onclick="eliminaUtente({{ utente.id }})" class="bg-red-500 text-white px-2 py-1 rounded-lg hover:bg-red-600 mt-2 md:mt-0 ml-2">Elimina</button>
-                            </li>
+                        <div id="utente-{{ utente.id }}" class="bg-white/90 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-100">
+                            <div class="flex items-center space-x-4 mb-4 md:mb-0">
+                                <div class="w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-800 flex items-center justify-center">
+                                    <span class="text-violet-600 dark:text-violet-200 font-semibold">{{ utente.nome[0] }}</span>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-800 dark:text-white">{{ utente.nome }} {{ utente.cognome }}</p>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ utente.email }}</p>
+                                </div>
+                            </div>
+                            <div class="flex space-x-3">
+                                <button onclick="eliminaUtente('{{ utente.id }}')" class="flex items-center px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                    Elimina
+                                </button>
+                            </div>
+                        </div>
                         {% endfor %}
-                    </ul>
+                    </div>
                 </div>
             </div>
         </div>
@@ -91,32 +86,66 @@
             document.querySelector('.mobile-menu').classList.toggle('hidden');
         });
 
+        // Funzioni per gli alert
+        function showSuccessAlert(message) {
+            Swal.fire({
+                title: 'Successo!',
+                text: message,
+                icon: 'success',
+                confirmButtonColor: '#8b5cf6',
+                background: '#fff',
+                backdrop: `rgba(0,0,0,0.4)
+                          url("/images/nyan-cat.gif")
+                          left top
+                          no-repeat`
+            });
+        }
+
+        function showErrorAlert(message) {
+            Swal.fire({
+                title: 'Errore!',
+                text: message,
+                icon: 'error',
+                confirmButtonColor: '#ef4444',
+                background: '#fff'
+            });
+        }
+
+        // Modifica della funzione eliminaUtente
         async function eliminaUtente(userId) {
-            const confirmed = confirm("Sei sicuro di voler eliminare questo utente?");
-            if (!confirmed) {
-                return;
-            }
+            const result = await Swal.fire({
+                title: 'Sei sicuro?',
+                text: "Questa azione non può essere annullata!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#8b5cf6',
+                cancelButtonColor: '#ef4444',
+                confirmButtonText: 'Sì, elimina!',
+                cancelButtonText: 'Annulla'
+            });
 
-            try {
-                const response = await fetch("{{ url_for('elimina_utente') }}", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRFToken": "{{ csrf_token() }}"  // Use csrf_token directly in template
-                    },
-                    body: JSON.stringify({ id: userId })
-                });
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch("/elimina_utente", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": "{{ csrf_token() }}"
+                        },
+                        body: JSON.stringify({ id: userId })
+                    });
 
-                const data = await response.json();
-                if (data.success) {
-                    alert("Utente eliminato con successo!");
-                    document.getElementById(`utente-${userId}`).remove();
-                } else {
-                    alert("Errore nell'eliminazione dell'utente.");
+                    const data = await response.json();
+                    if (data.success) {
+                        showSuccessAlert("Utente eliminato con successo!");
+                        document.getElementById(`utente-${userId}`).remove();
+                    } else {
+                        showErrorAlert("Errore nell'eliminazione dell'utente.");
+                    }
+                } catch (error) {
+                    console.error("Errore:", error);
+                    showErrorAlert("Errore nella comunicazione con il server.");
                 }
-            } catch (error) {
-                console.error("Errore:", error);
-                alert("Errore nella comunicazione con il server.");
             }
         }
     </script>
@@ -125,5 +154,100 @@
     <footer class="bg-violet-950 text-white py-4 px-6 text-center">
         <p class="text-sm">Copyright © 2024 - All rights reserved by delprincip3</p>
     </footer>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    function showAddUserForm() {
+        Swal.fire({
+            title: 'Aggiungi Nuovo Utente',
+            html: `
+                <form id="addUserForm" class="space-y-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-group">
+                        <label class="block text-sm font-medium text-gray-700 text-left mb-1">Tipo Utente</label>
+                        <select name="tipo" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-violet-500">
+                            <option value="User">User</option>
+                            <option value="Admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="block text-sm font-medium text-gray-700 text-left mb-1">Nome</label>
+                        <input type="text" name="nome" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-violet-500" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="block text-sm font-medium text-gray-700 text-left mb-1">Cognome</label>
+                        <input type="text" name="cognome" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-violet-500" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="block text-sm font-medium text-gray-700 text-left mb-1">Email</label>
+                        <input type="email" name="email" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-violet-500" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="block text-sm font-medium text-gray-700 text-left mb-1">Password</label>
+                        <input type="password" name="password" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-violet-500" required>
+                    </div>
+                </form>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Aggiungi',
+            cancelButtonText: 'Annulla',
+            confirmButtonColor: '#8b5cf6',
+            cancelButtonColor: '#ef4444',
+            focusConfirm: false,
+            customClass: {
+                container: 'swal-custom-container',
+                popup: 'swal-custom-popup',
+                content: 'swal-custom-content'
+            },
+            preConfirm: () => {
+                const form = document.getElementById('addUserForm');
+                const formData = new FormData(form);
+
+                return fetch('{{ url_for("aggiungi_utente") }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': formData.get('csrf_token')
+                    },
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Errore durante l\'aggiunta dell\'utente');
+                    }
+                    return response.json();
+                })
+                .catch(error => {
+                    Swal.showValidationMessage(`Errore: ${error.message}`);
+                });
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Successo!',
+                    text: 'Utente aggiunto correttamente',
+                    icon: 'success',
+                    confirmButtonColor: '#8b5cf6'
+                }).then(() => {
+                    // Ricarica la pagina per mostrare il nuovo utente
+                    location.reload();
+                });
+            }
+        });
+    }
+    </script>
+    <style>
+    .swal-custom-container {
+        z-index: 9999;
+    }
+
+    .swal-custom-popup {
+        border-radius: 1rem;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+    }
+
+    .swal-custom-content {
+        padding: 1rem;
+    }
+    </style>
 </body>
 </html>

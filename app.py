@@ -148,25 +148,43 @@ def elimina_utente():
 @app.route('/aggiungi_utente', methods=['POST'])
 def aggiungi_utente():
     if 'user_id' not in session:
-        flash('Devi essere loggato per vedere questa pagina.', 'danger')
-        return redirect(url_for('login'))
+        return jsonify({'success': False, 'message': 'Non autorizzato'}), 403
 
-    form = RegisterForm()  # Assicurati che il form corrisponda al form nel template
-    if form.validate_on_submit():
-        tipo = form.tipo.data
-        nome = form.nome.data
-        cognome = form.cognome.data
-        email = form.email.data
-        password = form.password.data
+    try:
+        tipo = request.form.get('tipo')
+        nome = request.form.get('nome')
+        cognome = request.form.get('cognome')
+        email = request.form.get('email')
+        password = request.form.get('password')
 
-        nuovo_utente = Utenza(tipo=tipo, nome=nome, cognome=cognome, email=email, password=password)
+        if not all([tipo, nome, cognome, email, password]):
+            return jsonify({'success': False, 'message': 'Tutti i campi sono obbligatori'}), 400
+
+        nuovo_utente = Utenza(
+            tipo=tipo,
+            nome=nome,
+            cognome=cognome,
+            email=email,
+            password=password
+        )
+        
         db.session.add(nuovo_utente)
         db.session.commit()
-        flash('Utente aggiunto con successo!', 'success')
-    else:
-        flash('Errore nella validazione del form. Riprova.', 'danger')
+        
+        return jsonify({
+            'success': True,
+            'message': 'Utente aggiunto con successo',
+            'user': {
+                'id': nuovo_utente.id,
+                'nome': nuovo_utente.nome,
+                'cognome': nuovo_utente.cognome,
+                'email': nuovo_utente.email
+            }
+        })
 
-    return redirect(url_for('gestisci_utenti'))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/miei_turni')
 def miei_turni():
@@ -182,4 +200,4 @@ def miei_turni():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True,port=2001)
