@@ -8,77 +8,179 @@
 </head>
 <body>
     <div class="bg-gray-100 min-h-screen">
-<header class="bg-gray-800 text-white shadow-lg  w-full z-50">
-    <div class="container mx-auto flex justify-between items-center py-4 px-6  ">
-        <div class="flex items-center">
-            <img src="{{ url_for('static', filename='logoboschetto.jpeg') }}" alt="Il Boschetto Logo" class="h-12 w-12 sm:h-16 sm:w-16 lg:h-20 lg:w-20 rounded-full">
-            <h1 class="text-2xl font-bold ml-4">Il Boschetto - Admin</h1>
-        </div>
-        <nav class="mobile-menu hidden md:hidden bg-gray-800">
-            <a href="{{ url_for('dashboard_admin') }}" class="block px-6 py-2 hover:bg-gray-700">Dashboard</a>
-            <a href="{{ url_for('gestisci_utenti') }}" class="block px-6 py-2 hover:bg-gray-700">Gestione Utenti</a>
-            <a href="{{ url_for('login') }}" class="block px-6 py-2 hover:bg-gray-700">Logout</a>
-        </nav>
-        <div class="md:hidden">
-            <button class="menu-toggle text-gray-200 hover:text-gray-400 focus:outline-none">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                </svg>
-            </button>
-        </div>
-    </div>
-    <nav class="mobile-menu hidden md:hidden bg-gray-800">
-        <a href="{{ url_for('dashboard_admin') }}" class="block px-6 py-2 hover:bg-gray-700">Dashboard</a>
-        <a href="{{ url_for('gestisci_utenti') }}" class="block px-6 py-2 hover:bg-gray-700">Gestione Utenti</a>
-        <a href="{{ url_for('login') }}" class="block px-6 py-2 hover:bg-gray-700">Logout</a>
-    </nav>
-</header>
+        <header class="bg-gradient-to-r from-violet-600 to-violet-900 text-white shadow-lg fixed w-full z-50 backdrop-blur-md">
+            <div class="container mx-auto flex justify-between items-center py-4 px-6  ">
+                <div class="flex items-center">
+                    <img src="{{ url_for('static', filename='logoboschetto.jpeg') }}" alt="Il Boschetto Logo" class="h-12 w-12 sm:h-16 sm:w-16 lg:h-20 lg:w-20 rounded-full">
+                    <h1 class="text-2xl font-bold ml-4">Il Boschetto - Admin</h1>
+                </div>
+                <nav class="mobile-menu hidden md:hidden bg-gray-800">
+                    <a href="{{ url_for('dashboard_admin') }}" class="block px-6 py-2 hover:bg-gray-700">Dashboard</a>
+                    <a href="{{ url_for('gestisci_utenti') }}" class="block px-6 py-2 hover:bg-gray-700">Gestione Utenti</a>
+                    <a href="{{ url_for('login') }}" class="block px-6 py-2 hover:bg-gray-700">Logout</a>
+                </nav>
+                <div class="md:hidden">
+                    <button class="menu-toggle text-gray-200 hover:text-gray-400 focus:outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <nav class="mobile-menu hidden md:hidden bg-gray-800">
+                <a href="{{ url_for('dashboard_admin') }}" class="block px-6 py-2 hover:bg-gray-700">Dashboard</a>
+                <a href="{{ url_for('gestisci_utenti') }}" class="block px-6 py-2 hover:bg-gray-700">Gestione Utenti</a>
+                <a href="{{ url_for('login') }}" class="block px-6 py-2 hover:bg-gray-700">Logout</a>
+            </nav>
+        </header>
 
-<div class="pt-20 min-h-screen bg-gray-100">
-    <div class="container mx-auto py-10">
-        <div class="bg-white shadow-md rounded-lg p-6">
-            <h2 class="text-2xl font-bold mb-4">Gestione Turni</h2>
-            <div class="container mx-auto p-12 bg-white shadow-lg rounded-lg min-h-screen">
-                <h1 class="text-2xl font-bold text-center mb-6">Gestisci Turni</h1>
-                <form method="POST" class="space-y-4">
-                    {{ form.hidden_tag() }}
-                    <div class="form-group">
-                        <label for="data" class="block text-sm font-medium text-gray-700">Data:</label>
-                        {{ form.data(class_='input input-bordered w-full') }}
+        <div class="pt-20 min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+            <div class="container mx-auto py-10 px-4">
+                <div class="bg-white backdrop-blur-xl shadow-xl rounded-2xl p-6 border border-gray-100">
+                    <div class="flex justify-between items-center mb-6 flex-col md:flex-row space-y-4 md:space-y-0">
+                        <h2 class="text-2xl font-bold text-gray-800">Gestione Turni</h2>
+                        <div class="w-full md:w-auto flex justify-center">
+                            <button onclick="showAddTurnoForm()" 
+                                    class="bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 
+                                           text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl 
+                                           transition-all duration-200 flex items-center justify-center space-x-2">
+                                <span>Aggiungi Turno</span>
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="turno" class="block text-sm font-medium text-gray-700">Turno:</label>
-                        {{ form.turno(class_='input input-bordered w-full') }}
+
+                    <!-- Lista Turni -->
+                    <div class="mt-8">
+                        <h3 class="text-xl font-semibold mb-6 text-gray-800">Turni Esistenti</h3>
+                        <div class="space-y-4">
+                            {% for turno in turni %}
+                            <div class="bg-white backdrop-blur-sm rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-100">
+                                <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                                    <div class="flex items-center space-x-4 mb-4 md:mb-0">
+                                        <div class="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center">
+                                            <span class="text-violet-600 font-semibold">{{ turno.utenza.nome[0] }}</span>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium text-gray-800">{{ turno.utenza.nome }} {{ turno.utenza.cognome }}</p>
+                                            <p class="text-sm text-gray-500">{{ turno.data.strftime('%d/%m/%Y') }} - {{ turno.turno }}</p>
+                                            <p class="text-sm text-gray-500">{{ turno.tipo }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="tipo" class="block text-sm font-medium text-gray-700">Tipo:</label>
-                        {{ form.tipo(class_='input input-bordered w-full') }}
-                    </div>
-                    <div class="form-group">
-                        <label for="utenza_id" class="block text-sm font-medium text-gray-700">Utente:</label>
-                        {{ form.utenza_id(class_='input input-bordered w-full') }}
-                    </div>
-                    <button type="submit" class="btn btn-primary w-full md:w-1/2 lg:w-1/3 xl:w-1/4 mx-auto block">Aggiungi Turno</button>
-                </form>
-                <h2 class="text-xl font-bold text-center mt-6">Turni Esistenti</h2>
-                <ul class="list-group mt-4 space-y-2">
-                    {% for turno in turni %}
-                        <li class="p-4 bg-white rounded-lg shadow">{{ turno.data }} - {{ turno.turno }} - {{ turno.tipo }} - {{ turno.utenza.nome }} {{ turno.utenza.cognome }}</li>
-                    {% endfor %}
-                </ul>
+                </div>
             </div>
         </div>
-    </div>
-</div>
 
-    <!-- Footer -->
-    <footer class="bg-violet-950 text-white py-4 px-6 text-center  mt-auto">
-        <p class="text-sm">Copyright © 2024 - All rights reserved by delprincip3</p>
-    </footer>
+        <!-- Footer -->
+        <footer class="bg-violet-950 text-white py-4 px-6 text-center">
+            <p class="text-sm">Copyright © 2024 - All rights reserved by delprincip3</p>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-    document.querySelector('.menu-toggle').addEventListener('click', function() {
-        document.querySelector('.mobile-menu').classList.toggle('hidden');
-    });
-</script>
+        document.querySelector('.menu-toggle').addEventListener('click', function() {
+            document.querySelector('.mobile-menu').classList.toggle('hidden');
+        });
+
+        function showAddTurnoForm() {
+            Swal.fire({
+                title: 'Aggiungi Nuovo Turno',
+                html: `
+                    <form id="addTurnoForm" class="space-y-4">
+                        {{ form.hidden_tag() }}
+                        <div class="form-group">
+                            <label class="block text-sm font-medium text-gray-700 text-left mb-1">Data</label>
+                            <input type="date" name="data" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-violet-500 bg-white text-gray-900" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="block text-sm font-medium text-gray-700 text-left mb-1">Turno</label>
+                            <select name="turno" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-violet-500 bg-white text-gray-900">
+                                <option value="mattina">Mattina</option>
+                                <option value="sera">Sera</option>
+                                <option value="doppio turno">Doppio Turno</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="block text-sm font-medium text-gray-700 text-left mb-1">Tipo</label>
+                            <select name="tipo" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-violet-500 bg-white text-gray-900">
+                                <option value="cameriere">Cameriere</option>
+                                <option value="lavapiatti">Lavapiatti</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="block text-sm font-medium text-gray-700 text-left mb-1">Utente</label>
+                            <select name="utenza_id" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-violet-500 bg-white text-gray-900">
+                                {% for choice in form.utenza_id.choices %}
+                                <option value="{{ choice[0] }}">{{ choice[1] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </form>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Aggiungi',
+                cancelButtonText: 'Annulla',
+                confirmButtonColor: '#8b5cf6',
+                cancelButtonColor: '#ef4444',
+                customClass: {
+                    container: 'swal-custom-container',
+                    popup: 'swal-custom-popup',
+                    content: 'swal-custom-content'
+                },
+                preConfirm: () => {
+                    const form = document.getElementById('addTurnoForm');
+                    const formData = new FormData(form);
+                    return fetch('{{ url_for("gestisci_turni") }}', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Errore durante l\'aggiunta del turno');
+                        }
+                        return response.json();
+                    })
+                    .catch(error => {
+                        Swal.showValidationMessage(`Errore: ${error.message}`);
+                    });
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Successo!',
+                        text: 'Turno aggiunto correttamente',
+                        icon: 'success',
+                        confirmButtonColor: '#8b5cf6'
+                    }).then(() => {
+                        location.reload();
+                    });
+                }
+            });
+        }
+    </script>
+
+    <style>
+    .swal-custom-container {
+        z-index: 9999;
+    }
+
+    .swal-custom-popup {
+        border-radius: 1rem;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+    }
+
+    .swal-custom-content {
+        padding: 1rem;
+    }
+    </style>
 </body>
 </html>

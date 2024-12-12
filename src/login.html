@@ -3,42 +3,69 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'">
   <title>boschetto - Login</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style/output.css') }}">
+  <style>
+    input:-webkit-autofill {
+      -webkit-box-shadow: 0 0 0 30px white inset !important;
+      -webkit-text-fill-color: #111827 !important;
+    }
+  </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center">
   <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
     <div class="flex justify-center mb-4">
-      <img src="src/logoboschetto.jpeg" alt="Ortoplan Logo" class="h-12 w-12 sm:h-16 sm:w-16 lg:h-20 lg:w-20 rounded-full">
+      <img src="{{ url_for('static', filename='logoboschetto.jpeg') }}" alt="Il Boschetto Logo" class="h-12 w-12 sm:h-16 sm:w-16 lg:h-20 lg:w-20 rounded-full">
     </div>
    
     <h2 class="text-xl font-semibold text-center mb-4">Accedi al tuo account</h2>
-    <form method="post" id="LoginForm">
+    <form method="post" id="LoginForm" class="space-y-4">
       {{ form.csrf_token }}
-      {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <ul class="flashes text-red-600">
-        {% for message in messages %}
-          <li>{{ message }}</li>
-        {% endfor %}
-        </ul>
-      {% endif %}
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="p-4 rounded-lg {% if category == 'danger' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
       {% endwith %}
-      <div class="mb-4">
-        <label for="email" class="block bg-white text-gray-700">Email</label>
-        {{ form.email(class=" bg-white w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600") }}
+
+      <div class="space-y-2">
+        <label for="email" class="block text-gray-700 font-medium">Email</label>
+        {{ form.email(class="bg-white w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-600 text-gray-900", autocomplete="username") }}
       </div>
-      <div class="mb-6">
-        <label for="password" class="block bg-white text-gray-700">Password</label>
-        {{ form.password(type="password", class=" bg-white w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600") }}
+
+      <div class="space-y-2">
+        <label for="password" class="block text-gray-700 font-medium">Password</label>
+        {{ form.password(class="bg-white w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-600 text-gray-900", autocomplete="current-password") }}
       </div>
-     
-      <button type="submit" class="w-full bg-violet-900 text-white py-2 rounded-lg hover:bg-violet-950">Login</button>
-      <div class="space-x-4 mt-4">
-        <a class="btn bg-violet-900 hover:bg-violet-950 text-white font-bold py-2  rounded-lg w-full" href="{{ url_for('index') }}">Torna alla pagina principale</a>
+
+      <button type="submit" class="w-full bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 text-white py-2 rounded-lg transition-all duration-200">
+        Login
+      </button>
+
+      <div class="mt-4">
+        <a class="block text-center bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 text-white py-2 rounded-lg transition-all duration-200" href="{{ url_for('index') }}">
+          Torna alla pagina principale
+        </a>
       </div>
     </form>
-</div>
- 
+  </div>
+
+  <script>
+    // Previeni il resubmit del form al refresh
+    if (window.history.replaceState) {
+      window.history.replaceState(null, null, window.location.href);
+    }
+
+    // Disabilita il form durante l'invio per prevenire doppi submit
+    document.getElementById('LoginForm').addEventListener('submit', function(e) {
+      const submitButton = this.querySelector('button[type="submit"]');
+      submitButton.disabled = true;
+      submitButton.innerHTML = 'Accesso in corso...';
+    });
+  </script>
 </body>
 </html>

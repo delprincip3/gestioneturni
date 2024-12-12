@@ -1,6 +1,6 @@
-from flask_wtf import FlaskForm
+from flask_wtf import FlaskForm, CSRFProtect
 from wtforms import StringField, PasswordField, SubmitField, SelectField, DateField,HiddenField
-from wtforms.validators import DataRequired, Email
+from wtforms.validators import DataRequired, Email, Length, EqualTo
 
 class RegisterForm(FlaskForm):
     tipo = SelectField('Tipo', choices=[('User', 'User')], validators=[DataRequired()])
@@ -14,6 +14,8 @@ class LoginForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired()])
     submit = SubmitField('Login')
+    class Meta:
+        csrf = True  # Abilita protezione CSRF
 
 class ModificaUtenteForm(FlaskForm):
     id = HiddenField('ID')
@@ -33,3 +35,15 @@ class GestisciTurniForm(FlaskForm):
     tipo = SelectField('Tipo', choices=[('cameriere', 'Cameriere'), ('lavapiatti', 'Lavapiatti')], validators=[DataRequired()])
     utenza_id = SelectField('Utente', coerce=int, validators=[DataRequired()])
     submit = SubmitField('Aggiungi Turno')
+
+class CambiaPasswordForm(FlaskForm):
+    password_attuale = PasswordField('Password Attuale', validators=[DataRequired()])
+    nuova_password = PasswordField('Nuova Password', validators=[
+        DataRequired(),
+        Length(min=8, message='La password deve essere di almeno 8 caratteri')
+    ])
+    conferma_password = PasswordField('Conferma Password', validators=[
+        DataRequired(),
+        EqualTo('nuova_password', message='Le password devono coincidere')
+    ])
+    submit = SubmitField('Cambia Password')
