@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Il Boschetto - {% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style/output.css') }}">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-violet-600 to-violet-900 text-white shadow-lg fixed w-full z-50 backdrop-blur-md">
+        <div class="container mx-auto flex justify-between items-center py-4 px-6">
+            <div class="flex items-center">
+                <img src="{{ url_for('static', filename='logoboschetto.jpeg') }}" alt="Il Boschetto Logo" class="h-12 w-12 sm:h-16 sm:w-16 lg:h-20 lg:w-20 rounded-full">
+                <h1 class="text-2xl font-bold ml-4">Il Boschetto - {% if session.get('user_type') == 'admin' %}Admin{% else %}Utente{% endif %}</h1>
+            </div>
+            
+            <!-- Menu Desktop -->
+            <nav class="hidden md:flex space-x-4">
+                {% if session.get('user_type') == 'admin' %}
+                    <a href="{{ url_for('dashboard_admin') }}" class="text-white hover:text-gray-200">Dashboard</a>
+                    <a href="{{ url_for('gestisci_utenti') }}" class="text-white hover:text-gray-200">Gestione Utenti</a>
+                    <a href="{{ url_for('gestisci_turni') }}" class="text-white hover:text-gray-200">Gestione Turni</a>
+                {% else %}
+                    <a href="{{ url_for('dashboard_user') }}" class="text-white hover:text-gray-200">Dashboard</a>
+                    <a href="{{ url_for('miei_turni') }}" class="text-white hover:text-gray-200">I Miei Turni</a>
+                {% endif %}
+                <a href="{{ url_for('logout') }}" class="text-white hover:text-gray-200">Logout</a>
+            </nav>
+
+            <!-- Menu Mobile -->
+            <div class="md:hidden">
+                <button class="menu-toggle text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Menu Mobile Dropdown -->
+        <nav class="mobile-menu hidden md:hidden bg-violet-800">
+            {% if session.get('user_type') == 'admin' %}
+                <a href="{{ url_for('dashboard_admin') }}" class="block px-6 py-2 hover:bg-violet-700">Dashboard</a>
+                <a href="{{ url_for('gestisci_utenti') }}" class="block px-6 py-2 hover:bg-violet-700">Gestione Utenti</a>
+                <a href="{{ url_for('gestisci_turni') }}" class="block px-6 py-2 hover:bg-violet-700">Gestione Turni</a>
+            {% else %}
+                <a href="{{ url_for('dashboard_user') }}" class="block px-6 py-2 hover:bg-violet-700">Dashboard</a>
+                <a href="{{ url_for('miei_turni') }}" class="block px-6 py-2 hover:bg-violet-700">I Miei Turni</a>
+            {% endif %}
+            <a href="{{ url_for('logout') }}" class="block px-6 py-2 hover:bg-violet-700">Logout</a>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="pt-32 pb-16 min-h-screen">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="container mx-auto px-4 mb-4">
+                        <div class="p-4 rounded-lg {% if category == 'success' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+                            {{ message }}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-violet-950 text-white py-4 px-6 text-center">
+        <p class="text-sm">Copyright © 2024 - All rights reserved by delprincip3</p>
+    </footer>
+
+    <script>
+        // Toggle menu mobile
+        document.querySelector('.menu-toggle').addEventListener('click', function() {
+            document.querySelector('.mobile-menu').classList.toggle('hidden');
+        });
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html> 

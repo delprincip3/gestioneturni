@@ -1,7 +1,9 @@
 from flask import Flask, render_template, request, flash, redirect, url_for, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from datetime import timedelta
+from datetime import timedelta, datetime
+from dateutil.parser import parse
+from dateutil.relativedelta import relativedelta
 from forms import LoginForm, RegisterForm, EliminaUtenteForm, ModificaUtenteForm, GestisciTurniForm, CambiaPasswordForm
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -20,11 +22,13 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import requests
+from sqlalchemy import or_
 
 load_dotenv()  # Carica le variabili d'ambiente prima di configurare l'app
 
 app = Flask(__name__, template_folder='src', static_folder='src')
 app.permanent_session_lifetime = timedelta(minutes=5)
+mail = Mail(app)
 
 # Configurazione del database usando variabili d'ambiente
 DB_USERNAME = os.environ.get('DB_USERNAME', 'root')
@@ -95,6 +99,14 @@ class Turno(db.Model):
 
     def __repr__(self):
         return f"<Turno {self.data} {self.turno} {self.tipo}>"
+
+class Assenza(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    turno_id = db.Column(db.Integer, db.ForeignKey('turno.id'), nullable=False)
+    data_comunicazione = db.Column(db.DateTime, default=datetime.now)
+    gestita = db.Column(db.Boolean, default=False)
+    
+    turno = db.relationship('Turno', backref=db.backref('assenza', lazy=True))
 
 def login_required(f):
     @wraps(f)
@@ -199,17 +211,99 @@ def gestisci_turni():
     
     if request.method == 'POST' and form.validate_on_submit():
         data = form.data.data
+        oggi = datetime.now().date()
+        
+        if data < oggi:
+            flash('Non è possibile aggiungere turni per date passate.', 'danger')
+            return redirect(url_for('gestisci_turni'))
+            
         turno = form.turno.data
         tipo = form.tipo.data
         utenza_id = form.utenza_id.data
 
-        nuovo_turno = Turno(data=data, turno=turno, tipo=tipo, utenza_id=utenza_id)
-        db.session.add(nuovo_turno)
-        db.session.commit()
-        flash('Turno aggiunto con successo!', 'success')
+        try:
+            nuovo_turno = Turno(data=data, turno=turno, tipo=tipo, utenza_id=utenza_id)
+            db.session.add(nuovo_turno)
+            db.session.commit()
 
-    turni = Turno.query.all()
-    return render_template('gestisci_turni.html', form=form, turni=turni)
+            # Invia email di notifica
+            utente = Utenza.query.get(utenza_id)
+            email_template = f"""
+            <h2>Nuovo Turno Assegnato</h2>
+            <p>Gentile {utente.nome} {utente.cognome},</p>
+            <p>Ti è stato assegnato un nuovo turno:</p>
+            <ul>
+                <li>Data: {data.strftime('%d/%m/%Y')}</li>
+                <li>Turno: {turno}</li>
+                <li>Tipo: {tipo}</li>
+            </ul>
+            <p>Se hai domande, contatta il tuo supervisore.</p>
+            """
+            
+            send_email(
+                utente.email,
+                "Nuovo Turno Assegnato - Il Boschetto",
+                email_template
+            )
+            
+            flash('Turno aggiunto con successo! Email di notifica inviata.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f'Errore nell\'aggiunta del turno: {str(e)}')
+            flash('Errore durante l\'aggiunta del turno.', 'danger')
+
+    # Gestione filtri
+    data_filter = request.args.get('data', '')
+    tipo_filter = request.args.get('tipo', '')
+    turno_filter = request.args.get('turno', '')
+    utente_filter = request.args.get('utente', '')
+    
+    # Query base
+    query = Turno.query
+    
+    # Applica i filtri se presenti
+    if data_filter:
+        try:
+            data_cercata = datetime.strptime(data_filter, '%Y-%m-%d').date()
+            query = query.filter(Turno.data == data_cercata)
+        except ValueError:
+            pass
+    
+    if tipo_filter:
+        query = query.filter(Turno.tipo == tipo_filter)
+    
+    if turno_filter:
+        query = query.filter(Turno.turno == turno_filter)
+    
+    if utente_filter:
+        query = query.join(Utenza).filter(
+            or_(
+                Utenza.nome.ilike(f'%{utente_filter}%'),
+                Utenza.cognome.ilike(f'%{utente_filter}%')
+            )
+        )
+    
+    # Paginazione
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    pagination = query.order_by(Turno.data.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    turni = pagination.items
+    
+    today = datetime.now().date()
+    
+    # Ottieni tutte le assenze, ordinate per data di comunicazione (più recenti prima)
+    assenze = Assenza.query.order_by(Assenza.data_comunicazione.desc()).all()
+    
+    return render_template('gestisci_turni.html', 
+                         form=form, 
+                         turni=turni, 
+                         today=today, 
+                         assenze=assenze,
+                         pagination=pagination,
+                         data_filter=data_filter,
+                         tipo_filter=tipo_filter,
+                         turno_filter=turno_filter,
+                         utente_filter=utente_filter)
 
 @app.route('/gestisci_utenti', methods=['GET'])
 def gestisci_utenti():
@@ -340,15 +434,12 @@ def aggiungi_utente():
         return jsonify({'success': False, 'message': 'Errore durante l\'aggiunta dell\'utente'}), 500
 
 @app.route('/miei_turni')
+@login_required
 def miei_turni():
-    if 'user_id' not in session:
-        flash('Devi essere loggato per vedere questa pagina.', 'danger')
-        return redirect(url_for('login'))
-    
-    user_id = session['user_id']
-    utente = Utenza.query.get(user_id)
-    turni = Turno.query.filter_by(utenza_id=user_id).all()
-    return render_template('miei_turni.html', utente=utente, turni=turni)
+    utente = Utenza.query.get(session['user_id'])
+    turni = Turno.query.filter_by(utenza_id=utente.id).all()
+    today = datetime.now().date()
+    return render_template('miei_turni.html', utente=utente, turni=turni, today=today)
 
 def hash_password(password):
     return generate_password_hash(password, method='pbkdf2:sha256')
@@ -491,6 +582,344 @@ def test_smtp_connection():
     except Exception as e:
         print(f"Errore: {str(e)}")
         return False
+
+@app.route('/elimina_turno', methods=['POST'])
+@login_required
+def elimina_turno():
+    try:
+        data = request.get_json()
+        turno_id = data.get('id')
+        
+        turno = Turno.query.get(turno_id)
+        if not turno:
+            return jsonify({"success": False, "message": "Turno non trovato"}), 404
+            
+        # Controlla se il turno è modificabile (non nel passato)
+        data_turno = turno.data
+        oggi = datetime.now().date()
+        if data_turno < oggi:
+            return jsonify({
+                "success": False, 
+                "message": "Non è possibile eliminare turni passati"
+            }), 400
+            
+        # Ottieni i dettagli dell'utente per l'email
+        utente = Utenza.query.get(turno.utenza_id)
+        
+        # Prepara il template dell'email
+        email_template = f"""
+        <h2>Notifica Eliminazione Turno</h2>
+        <p>Gentile {utente.nome} {utente.cognome},</p>
+        <p>Ti informiamo che il tuo turno è stato eliminato:</p>
+        <ul>
+            <li>Data: {turno.data.strftime('%d/%m/%Y')}</li>
+            <li>Turno: {turno.turno}</li>
+            <li>Tipo: {turno.tipo}</li>
+        </ul>
+        <p>Se non hai richiesto questa modifica, contatta immediatamente il tuo supervisore.</p>
+        """
+        
+        # Prima elimina l'assenza se esiste
+        assenza = Assenza.query.filter_by(turno_id=turno_id).first()
+        if assenza:
+            db.session.delete(assenza)
+            
+        # Poi elimina il turno
+        db.session.delete(turno)
+        db.session.commit()
+        
+        # Invia email di notifica
+        send_email(
+            utente.email,
+            "Notifica Eliminazione Turno - Il Boschetto",
+            email_template
+        )
+        
+        return jsonify({"success": True, "message": "Turno eliminato con successo"}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f'Errore nell\'eliminazione del turno: {str(e)}')
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/modifica_turno', methods=['POST'])
+@login_required
+def modifica_turno():
+    try:
+        data = request.get_json()
+        turno_id = data.get('id')
+        nuova_data = parse(data.get('data')).date()
+        nuovo_turno = data.get('turno')
+        nuovo_tipo = data.get('tipo')
+        nuovo_utente_id = data.get('utenza_id')
+        
+        turno = Turno.query.get(turno_id)
+        if not turno:
+            return jsonify({"success": False, "message": "Turno non trovato"}), 404
+            
+        # Controlla se il turno è modificabile
+        data_turno = turno.data
+        oggi = datetime.now().date()
+        if data_turno < oggi:
+            return jsonify({
+                "success": False, 
+                "message": "Non è possibile modificare turni passati"
+            }), 400
+            
+        # Ottieni i dettagli degli utenti per le email
+        vecchio_utente = Utenza.query.get(turno.utenza_id)
+        nuovo_utente = Utenza.query.get(nuovo_utente_id)
+        
+        # Salva i vecchi dati per l'email
+        vecchia_data = turno.data
+        vecchio_turno_tipo = turno.turno
+        vecchio_tipo = turno.tipo
+        
+        # Se c'è un'assenza associata, marcala come gestita
+        assenza = Assenza.query.filter_by(turno_id=turno_id).first()
+        if assenza:
+            assenza.gestita = True
+        
+        # Aggiorna il turno
+        turno.data = nuova_data
+        turno.turno = nuovo_turno
+        turno.tipo = nuovo_tipo
+        turno.utenza_id = nuovo_utente_id
+        
+        db.session.commit()
+        
+        # Prepara e invia email al vecchio utente
+        if vecchio_utente.id != nuovo_utente.id:
+            email_template_vecchio = f"""
+            <h2>Notifica Modifica Turno</h2>
+            <p>Gentile {vecchio_utente.nome} {vecchio_utente.cognome},</p>
+            <p>Ti informiamo che il tuo turno è stato modificato e assegnato a un altro utente:</p>
+            <ul>
+                <li>Data: {vecchia_data.strftime('%d/%m/%Y')}</li>
+                <li>Turno: {vecchio_turno_tipo}</li>
+                <li>Tipo: {vecchio_tipo}</li>
+            </ul>
+            <p>Se non hai richiesto questa modifica, contatta immediatamente il tuo supervisore.</p>
+            """
+            
+            send_email(
+                vecchio_utente.email,
+                "Notifica Modifica Turno - Il Boschetto",
+                email_template_vecchio
+            )
+        
+        # Prepara e invia email al nuovo utente
+        email_template_nuovo = f"""
+        <h2>Notifica Nuovo Turno</h2>
+        <p>Gentile {nuovo_utente.nome} {nuovo_utente.cognome},</p>
+        <p>Ti è stato assegnato un nuovo turno:</p>
+        <ul>
+            <li>Data: {nuova_data.strftime('%d/%m/%Y')}</li>
+            <li>Turno: {nuovo_turno}</li>
+            <li>Tipo: {nuovo_tipo}</li>
+        </ul>
+        <p>Se hai domande, contatta il tuo supervisore.</p>
+        """
+        
+        send_email(
+            nuovo_utente.email,
+            "Notifica Nuovo Turno - Il Boschetto",
+            email_template_nuovo
+        )
+        
+        return jsonify({"success": True, "message": "Turno modificato con successo"}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f'Errore nella modifica del turno: {str(e)}')
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/comunica_assenza', methods=['POST'])
+@login_required
+def comunica_assenza():
+    try:
+        data = request.get_json()
+        turno_id = data.get('id')
+        
+        turno = Turno.query.get(turno_id)
+        if not turno:
+            return jsonify({"success": False, "message": "Turno non trovato"}), 404
+            
+        # Controlla se il turno è nel passato
+        oggi = datetime.now().date()
+        if turno.data < oggi:
+            return jsonify({
+                "success": False, 
+                "message": "Non è possibile comunicare assenze per turni passati"
+            }), 400
+            
+        # Controlla se esiste già una comunicazione di assenza
+        if Assenza.query.filter_by(turno_id=turno_id).first():
+            return jsonify({
+                "success": False,
+                "message": "Hai già comunicato l'assenza per questo turno"
+            }), 400
+            
+        # Crea la nuova assenza
+        assenza = Assenza(turno_id=turno_id)
+        db.session.add(assenza)
+        
+        # Trova tutti gli admin
+        admin_users = Utenza.query.filter_by(tipo='admin').all()
+        
+        # Invia email a tutti gli admin
+        for admin in admin_users:
+            email_template = f"""
+            <h2>Comunicazione Assenza</h2>
+            <p>Gentile {admin.nome} {admin.cognome},</p>
+            <p>Il dipendente {turno.utenza.nome} {turno.utenza.cognome} ha comunicato la sua assenza per il seguente turno:</p>
+            <ul>
+                <li>Data: {turno.data.strftime('%d/%m/%Y')}</li>
+                <li>Turno: {turno.turno}</li>
+                <li>Tipo: {turno.tipo}</li>
+            </ul>
+            <p>Si consiglia di modificare o eliminare il turno.</p>
+            """
+            
+            send_email(
+                admin.email,
+                f"Comunicazione Assenza - {turno.utenza.nome} {turno.utenza.cognome}",
+                email_template
+            )
+        
+        db.session.commit()
+        return jsonify({"success": True, "message": "Assenza comunicata con successo"}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f'Errore nella comunicazione dell\'assenza: {str(e)}')
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/check_assenze', methods=['GET'])
+@login_required
+def check_assenze():
+    try:
+        if session.get('user_type') != 'admin':
+            return jsonify({"success": False, "message": "Non autorizzato"}), 403
+            
+        # Trova tutte le assenze non gestite per turni futuri
+        oggi = datetime.now().date()
+        assenze = Assenza.query.join(Turno).filter(
+            Assenza.gestita == False,
+            Turno.data >= oggi
+        ).all()
+        
+        if not assenze:
+            return jsonify({"success": True, "assenze": []})
+            
+        result = []
+        for assenza in assenze:
+            turno = assenza.turno
+            result.append({
+                "id": assenza.id,
+                "dipendente": f"{turno.utenza.nome} {turno.utenza.cognome}",
+                "data": turno.data.strftime('%d/%m/%Y'),
+                "turno_id": turno.id
+            })
+            
+        return jsonify({"success": True, "assenze": result})
+        
+    except Exception as e:
+        app.logger.error(f'Errore nel controllo delle assenze: {str(e)}')
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/marca_assenza_notificata', methods=['POST'])
+@login_required
+def marca_assenza_notificata():
+    try:
+        if session.get('user_type') != 'admin':
+            return jsonify({"success": False, "message": "Non autorizzato"}), 403
+            
+        data = request.get_json()
+        assenza_id = data.get('id')
+        
+        assenza = Assenza.query.get(assenza_id)
+        if not assenza:
+            return jsonify({"success": False, "message": "Assenza non trovata"}), 404
+            
+        assenza.notificata = True
+        db.session.commit()
+        
+        return jsonify({"success": True})
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f'Errore nella marcatura dell\'assenza: {str(e)}')
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/modifica_utente', methods=['POST'])
+@login_required
+def modifica_utente():
+    try:
+        if session.get('user_type') != 'admin':
+            return jsonify({"success": False, "message": "Non autorizzato"}), 403
+
+        utente_id = request.form.get('id')
+        tipo = request.form.get('tipo')
+        nome = request.form.get('nome')
+        cognome = request.form.get('cognome')
+        email = request.form.get('email')
+
+        if not all([utente_id, tipo, nome, cognome, email]):
+            return jsonify({"success": False, "message": "Tutti i campi sono obbligatori"}), 400
+
+        utente = Utenza.query.get(utente_id)
+        if not utente:
+            return jsonify({"success": False, "message": "Utente non trovato"}), 404
+
+        # Controlla se l'email è già in uso da un altro utente
+        existing_user = Utenza.query.filter(
+            Utenza.email == email,
+            Utenza.id != utente_id
+        ).first()
+        if existing_user:
+            return jsonify({"success": False, "message": "Email già in uso da un altro utente"}), 400
+
+        # Aggiorna i dati dell'utente
+        utente.tipo = tipo
+        utente.nome = nome
+        utente.cognome = cognome
+        utente.email = email
+
+        db.session.commit()
+
+        # Invia email di notifica
+        email_template = f"""
+        <h2>Notifica Modifica Account</h2>
+        <p>Gentile {nome} {cognome},</p>
+        <p>Ti informiamo che i tuoi dati sono stati modificati:</p>
+        <ul>
+            <li>Tipo account: {tipo}</li>
+            <li>Nome: {nome}</li>
+            <li>Cognome: {cognome}</li>
+            <li>Email: {email}</li>
+        </ul>
+        <p>Se non hai richiesto questa modifica, contatta immediatamente il tuo supervisore.</p>
+        """
+
+        send_email(
+            email,
+            "Notifica Modifica Account - Il Boschetto",
+            email_template
+        )
+
+        return jsonify({
+            "success": True,
+            "message": "Utente modificato con successo"
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f'Errore nella modifica dell\'utente: {str(e)}')
+        return jsonify({
+            "success": False,
+            "message": "Si è verificato un errore durante la modifica dell'utente"
+        }), 500
 
 if __name__ == "__main__":
     test_smtp_connection()

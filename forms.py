@@ -3,7 +3,10 @@ from wtforms import StringField, PasswordField, SubmitField, SelectField, DateFi
 from wtforms.validators import DataRequired, Email, Length, EqualTo
 
 class RegisterForm(FlaskForm):
-    tipo = SelectField('Tipo', choices=[('User', 'User')], validators=[DataRequired()])
+    tipo = SelectField('Tipo', choices=[
+        ('admin', 'Admin'),
+        ('user', 'User')
+    ], validators=[DataRequired()])
     nome = StringField('Nome', validators=[DataRequired()])
     cognome = StringField('Cognome', validators=[DataRequired()])
     email = StringField('Email', validators=[DataRequired(), Email()])
