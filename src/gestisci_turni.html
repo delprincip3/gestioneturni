@@ -134,8 +134,8 @@
                     <select name="turno" id="turno" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500">
                         <option value="">Tutti</option>
                         <option value="Mattina" {% if turno_filter == 'Mattina' %}selected{% endif %}>Mattina</option>
-                        <option value="Pomeriggio" {% if turno_filter == 'Pomeriggio' %}selected{% endif %}>Pomeriggio</option>
                         <option value="Sera" {% if turno_filter == 'Sera' %}selected{% endif %}>Sera</option>
+                        <option value="Doppio Turno" {% if turno_filter == 'Doppio Turno' %}selected{% endif %}>Doppio Turno</option>
                     </select>
                 </div>
                 <div class="space-y-2">
@@ -150,6 +150,14 @@
                 <div class="space-y-2">
                     <label for="utente" class="block text-sm font-medium text-gray-700">Utente</label>
                     <input type="text" name="utente" id="utente" value="{{ utente_filter }}" placeholder="Nome o cognome..." class="w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500">
+                </div>
+                <div class="space-y-2">
+                    <label for="stato" class="block text-sm font-medium text-gray-700">Stato</label>
+                    <select name="stato" id="stato" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500">
+                        <option value="">Tutti</option>
+                        <option value="nuovo" {% if stato_filter == 'nuovo' %}selected{% endif %}>Nuovi Turni</option>
+                        <option value="passato" {% if stato_filter == 'passato' %}selected{% endif %}>Turni Passati</option>
+                    </select>
                 </div>
                 <div class="lg:col-span-4 flex justify-end space-x-4">
                     <a href="{{ url_for('gestisci_turni') }}" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
@@ -222,13 +230,13 @@
                         </p>
                         <div class="space-x-2">
                             {% if pagination.has_prev %}
-                            <a href="{{ url_for('gestisci_turni', page=pagination.prev_num, data=data_filter, tipo=tipo_filter, turno=turno_filter, utente=utente_filter) }}" 
+                            <a href="{{ url_for('gestisci_turni', page=pagination.prev_num, data=data_filter, tipo=tipo_filter, turno=turno_filter, utente=utente_filter, stato=stato_filter) }}" 
                                class="bg-violet-100 text-violet-700 px-3 py-1 rounded hover:bg-violet-200">
                                 <i class="fas fa-chevron-left"></i> Precedente
                             </a>
                             {% endif %}
                             {% if pagination.has_next %}
-                            <a href="{{ url_for('gestisci_turni', page=pagination.next_num, data=data_filter, tipo=tipo_filter, turno=turno_filter, utente=utente_filter) }}" 
+                            <a href="{{ url_for('gestisci_turni', page=pagination.next_num, data=data_filter, tipo=tipo_filter, turno=turno_filter, utente=utente_filter, stato=stato_filter) }}" 
                                class="bg-violet-100 text-violet-700 px-3 py-1 rounded hover:bg-violet-200">
                                 Successiva <i class="fas fa-chevron-right"></i>
                             </a>
@@ -262,8 +270,8 @@
                     <label for="modTurno" class="block text-sm font-medium text-gray-700">Turno</label>
                     <select id="modTurno" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm">
                         <option value="Mattina">Mattina</option>
-                        <option value="Pomeriggio">Pomeriggio</option>
                         <option value="Sera">Sera</option>
+                        <option value="Doppio Turno">Doppio Turno</option>
                     </select>
                 </div>
                 <div>

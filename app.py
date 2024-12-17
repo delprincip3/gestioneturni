@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, flash, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from datetime import timedelta, datetime
@@ -23,11 +23,27 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import requests
 from sqlalchemy import or_
+import random
+import string
 
 load_dotenv()  # Carica le variabili d'ambiente prima di configurare l'app
 
 app = Flask(__name__, template_folder='src', static_folder='src')
 app.permanent_session_lifetime = timedelta(minutes=5)
+
+# Configurazione email
+app.config.update(
+    MAIL_SERVER = 'smtp.gmail.com',
+    MAIL_PORT = 587,
+    MAIL_USERNAME = 'delprincipeluigimichele@gmail.com',
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD'),
+    MAIL_USE_TLS = True,
+    MAIL_USE_SSL = False,
+    MAIL_MAX_EMAILS = 5,
+    MAIL_TIMEOUT = 30,
+    MAIL_DEFAULT_SENDER = ('Il Boschetto - No Reply', 'delprincipeluigimichele@gmail.com')
+)
+
 mail = Mail(app)
 
 # Configurazione del database usando variabili d'ambiente
@@ -44,17 +60,6 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config.update(
-    MAIL_SERVER = 'smtp.gmail.com',
-    MAIL_PORT = 587,
-    MAIL_USERNAME = 'delprincipeluigimichele@gmail.com',
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD'),
-    MAIL_USE_TLS = True,
-    MAIL_USE_SSL = False,
-    MAIL_MAX_EMAILS = 5,
-    MAIL_TIMEOUT = 30,
-    MAIL_DEFAULT_SENDER = ('Il Boschetto - No Reply', 'delprincipeluigimichele@gmail.com')
-)
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -112,7 +117,7 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
-            flash('Devi effettuare il login per accedere a questa pagina.', 'danger')
+            flash('Devi essere loggato per vedere questa pagina.', 'danger')
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
@@ -124,7 +129,7 @@ def admin_required(f):
             flash('Devi effettuare il login per accedere a questa pagina.', 'danger')
             return redirect(url_for('login'))
         
-        user = Utenza.query.get(session['user_id'])
+        user = db.session.get(Utenza, session['user_id'])
         if not user or user.tipo != 'admin':
             flash('Non hai i permessi per accedere a questa pagina.', 'danger')
             return redirect(url_for('dashboard_user'))
@@ -136,51 +141,47 @@ def index():
     return render_template('index.html')
 
 @app.route('/login', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
 def login():
     if 'user_id' in session:
-        user = Utenza.query.get(session['user_id'])
-        if user.tipo == 'admin':
+        if session.get('user_type') == 'admin':
             return redirect(url_for('dashboard_admin'))
         return redirect(url_for('dashboard_user'))
 
     form = LoginForm()
-    if form.validate_on_submit():
-        user = Utenza.query.filter_by(email=form.email.data).first()
-        
-        try:
-            # Per le password non ancora hashate
-            if len(user.password) < 50:  # Le password hashate sono più lunghe
-                if user.password == form.password.data:
-                    # Aggiorna la password con hash
-                    user.password = generate_password_hash(form.password.data)
-                    db.session.commit()
-                    login_successful = True
-                else:
-                    login_successful = False
-            else:
-                # Per le password già hashate
-                login_successful = check_password_hash(user.password, form.password.data)
+    
+    if request.method == 'POST':
+        if request.is_json:
+            data = request.get_json()
+            email = data.get('email')
+            password = data.get('password')
+        else:
+            email = form.email.data
+            password = form.password.data
 
-            if login_successful:
-                session.clear()
-                session['user_id'] = user.id
-                session['user_type'] = user.tipo
-                session['_fresh'] = True
-                session.permanent = True
-                
-                app.logger.info(f'Login riuscito per utente {user.email}')
-                
-                if user.tipo == 'admin':
-                    return redirect(url_for('dashboard_admin'))
-                return redirect(url_for('dashboard_user'))
-            
-        except Exception as e:
-            app.logger.error(f'Errore durante il login: {str(e)}')
-            
-        app.logger.warning(f'Tentativo di login fallito per email {form.email.data}')
-        flash('Email o password non validi.', 'danger')
+        if not email or not password:
+            if request.is_json:
+                return jsonify({'success': False, 'message': 'Email e password sono richiesti'})
+            flash('Email e password sono richiesti', 'danger')
+            return render_template('login.html', form=form)
+
+        user = Utenza.query.filter_by(email=email).first()
         
+        if user and check_password_hash(user.password, password):
+            session.clear()
+            session['user_id'] = user.id
+            session['user_type'] = user.tipo
+            session.permanent = True
+            
+            redirect_url = url_for('dashboard_admin') if user.tipo == 'admin' else url_for('dashboard_user')
+            
+            if request.is_json:
+                return jsonify({'success': True, 'redirect': redirect_url})
+            return redirect(redirect_url)
+        
+        if request.is_json:
+            return jsonify({'success': False, 'message': 'Credenziali errate'})
+        flash('Credenziali errate', 'danger')
+
     return render_template('login.html', form=form)
 
 @app.route('/logout')
@@ -227,7 +228,7 @@ def gestisci_turni():
             db.session.commit()
 
             # Invia email di notifica
-            utente = Utenza.query.get(utenza_id)
+            utente = db.session.get(Utenza, utenza_id)
             email_template = f"""
             <h2>Nuovo Turno Assegnato</h2>
             <p>Gentile {utente.nome} {utente.cognome},</p>
@@ -257,6 +258,7 @@ def gestisci_turni():
     tipo_filter = request.args.get('tipo', '')
     turno_filter = request.args.get('turno', '')
     utente_filter = request.args.get('utente', '')
+    stato_filter = request.args.get('stato', '')  # nuovo/passato
     
     # Query base
     query = Turno.query
@@ -282,14 +284,18 @@ def gestisci_turni():
                 Utenza.cognome.ilike(f'%{utente_filter}%')
             )
         )
+
+    today = datetime.now().date()
+    if stato_filter == 'nuovo':
+        query = query.filter(Turno.data >= today)
+    elif stato_filter == 'passato':
+        query = query.filter(Turno.data < today)
     
     # Paginazione
     page = request.args.get('page', 1, type=int)
     per_page = 10
     pagination = query.order_by(Turno.data.desc()).paginate(page=page, per_page=per_page, error_out=False)
     turni = pagination.items
-    
-    today = datetime.now().date()
     
     # Ottieni tutte le assenze, ordinate per data di comunicazione (più recenti prima)
     assenze = Assenza.query.order_by(Assenza.data_comunicazione.desc()).all()
@@ -303,7 +309,8 @@ def gestisci_turni():
                          data_filter=data_filter,
                          tipo_filter=tipo_filter,
                          turno_filter=turno_filter,
-                         utente_filter=utente_filter)
+                         utente_filter=utente_filter,
+                         stato_filter=stato_filter)
 
 @app.route('/gestisci_utenti', methods=['GET'])
 def gestisci_utenti():
@@ -434,12 +441,54 @@ def aggiungi_utente():
         return jsonify({'success': False, 'message': 'Errore durante l\'aggiunta dell\'utente'}), 500
 
 @app.route('/miei_turni')
-@login_required
 def miei_turni():
-    utente = Utenza.query.get(session['user_id'])
-    turni = Turno.query.filter_by(utenza_id=utente.id).all()
+    if 'user_id' not in session:
+        flash('Devi essere loggato per vedere questa pagina.', 'danger')
+        return redirect(url_for('login'))
+
+    # Gestione filtri
+    data_filter = request.args.get('data', '')
+    tipo_filter = request.args.get('tipo', '')
+    turno_filter = request.args.get('turno', '')
+    stato_filter = request.args.get('stato', '')  # nuovo/passato
+    
+    # Query base per i turni dell'utente corrente
+    query = Turno.query.filter_by(utenza_id=session['user_id'])
+    
+    # Applica i filtri se presenti
+    if data_filter:
+        try:
+            data_cercata = datetime.strptime(data_filter, '%Y-%m-%d').date()
+            query = query.filter(Turno.data == data_cercata)
+        except ValueError:
+            pass
+    
+    if tipo_filter:
+        query = query.filter(Turno.tipo == tipo_filter)
+    
+    if turno_filter:
+        query = query.filter(Turno.turno == turno_filter)
+
     today = datetime.now().date()
-    return render_template('miei_turni.html', utente=utente, turni=turni, today=today)
+    if stato_filter == 'nuovo':
+        query = query.filter(Turno.data >= today)
+    elif stato_filter == 'passato':
+        query = query.filter(Turno.data < today)
+    
+    # Paginazione
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    pagination = query.order_by(Turno.data.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    turni = pagination.items
+
+    return render_template('miei_turni.html', 
+                         turni=turni, 
+                         today=today,
+                         pagination=pagination,
+                         data_filter=data_filter,
+                         tipo_filter=tipo_filter,
+                         turno_filter=turno_filter,
+                         stato_filter=stato_filter)
 
 def hash_password(password):
     return generate_password_hash(password, method='pbkdf2:sha256')
@@ -528,60 +577,59 @@ if not app.debug:
     app.logger.setLevel(logging.INFO)
     app.logger.info('Applicazione avviata')
 
-def send_email(to, subject, template):
+def send_email(to, subject, template_html):
     try:
         # Crea il messaggio
-        msg = MIMEMultipart('alternative')
+        msg = MIMEMultipart()
         msg['Subject'] = subject
-        msg['From'] = 'Il Boschetto - No Reply <delprincipeluigimichele@gmail.com>'
+        msg['From'] = app.config['MAIL_DEFAULT_SENDER'][1]
         msg['To'] = to
-        
-        # Aggiungi il logo come immagine base64
-        try:
-            with app.open_resource("src/logoboschetto.jpeg", "rb") as logo:
-                logo_base64 = base64.b64encode(logo.read()).decode()
-                template = template.replace('<h2', f'''
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <img src="data:image/jpeg;base64,{logo_base64}" alt="Il Boschetto Logo" style="width: 150px; height: auto;">
-                    </div>
-                    <h2''')
-        except Exception as e:
-            app.logger.error(f'Errore nella codifica del logo: {str(e)}')
+
+        # Template HTML base
+        html = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <img src="cid:logo" alt="Il Boschetto Logo" style="width: 150px;">
+                <h1 style="color: #4c1d95;">Il Boschetto</h1>
+            </div>
+            {template_html}
+            <div style="margin-top: 20px; text-align: center; color: #666; font-size: 12px;">
+                <p>Questa è un'email generata automaticamente, ti preghiamo di non rispondere.</p>
+                <p>© 2024 Il Boschetto</p>
+            </div>
+        </div>
+        """
 
         # Aggiungi il contenuto HTML
-        html_part = MIMEText(template, 'html')
-        msg.attach(html_part)
+        msg.attach(MIMEText(html, 'html'))
+
+        # Allega il logo
+        with open("src/logoboschetto.jpeg", "rb") as f:
+            logo = MIMEText(f.read(), 'base64', 'utf-8')
+            logo.add_header('Content-ID', '<logo>')
+            logo.add_header('Content-Disposition', 'inline', filename="logoboschetto.jpeg")
+            msg.attach(logo)
 
         # Configura la connessione SMTP
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                with smtplib.SMTP(app.config['MAIL_SERVER'], app.config['MAIL_PORT']) as server:
-                    server.starttls()
-                    server.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
-                    server.send_message(msg)
-                    app.logger.info(f'Email inviata con successo a {to}')
-                    return True
-            except Exception as e:
-                if attempt == max_retries - 1:  # Ultimo tentativo
-                    raise
-                app.logger.warning(f'Tentativo {attempt + 1} fallito: {str(e)}')
-                time.sleep(2)
+        server = smtplib.SMTP(app.config['MAIL_SERVER'], app.config['MAIL_PORT'])
+        server.starttls()
+        server.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
         
+        # Invia l'email
+        server.send_message(msg)
+        server.quit()
+        
+        return True
     except Exception as e:
-        app.logger.error(f'Errore nell\'invio dell\'email a {to}: {str(e)}')
+        app.logger.error(f'Errore nell\'invio email a {to}: {str(e)}')
         return False
 
 def test_smtp_connection():
     try:
-        with smtplib.SMTP('sandbox.smtp.mailtrap.io', 587) as server:
-            server.starttls()
-            server.login('8e8ce25bbe09b6', 'b4e3d8aa8d')
-            print("Connessione riuscita!")
-            return True
+        with mail.connect() as conn:
+            app.logger.info('Connessione SMTP testata con successo')
     except Exception as e:
-        print(f"Errore: {str(e)}")
-        return False
+        app.logger.error(f'Errore nella connessione SMTP: {str(e)}')
 
 @app.route('/elimina_turno', methods=['POST'])
 @login_required
@@ -590,7 +638,7 @@ def elimina_turno():
         data = request.get_json()
         turno_id = data.get('id')
         
-        turno = Turno.query.get(turno_id)
+        turno = db.session.get(Turno, turno_id)
         if not turno:
             return jsonify({"success": False, "message": "Turno non trovato"}), 404
             
@@ -604,7 +652,7 @@ def elimina_turno():
             }), 400
             
         # Ottieni i dettagli dell'utente per l'email
-        utente = Utenza.query.get(turno.utenza_id)
+        utente = db.session.get(Utenza, turno.utenza_id)
         
         # Prepara il template dell'email
         email_template = f"""
@@ -620,7 +668,7 @@ def elimina_turno():
         """
         
         # Prima elimina l'assenza se esiste
-        assenza = Assenza.query.filter_by(turno_id=turno_id).first()
+        assenza = db.session.get(Assenza, turno_id)
         if assenza:
             db.session.delete(assenza)
             
@@ -653,7 +701,7 @@ def modifica_turno():
         nuovo_tipo = data.get('tipo')
         nuovo_utente_id = data.get('utenza_id')
         
-        turno = Turno.query.get(turno_id)
+        turno = db.session.get(Turno, turno_id)
         if not turno:
             return jsonify({"success": False, "message": "Turno non trovato"}), 404
             
@@ -667,8 +715,8 @@ def modifica_turno():
             }), 400
             
         # Ottieni i dettagli degli utenti per le email
-        vecchio_utente = Utenza.query.get(turno.utenza_id)
-        nuovo_utente = Utenza.query.get(nuovo_utente_id)
+        vecchio_utente = db.session.get(Utenza, turno.utenza_id)
+        nuovo_utente = db.session.get(Utenza, nuovo_utente_id)
         
         # Salva i vecchi dati per l'email
         vecchia_data = turno.data
@@ -676,7 +724,7 @@ def modifica_turno():
         vecchio_tipo = turno.tipo
         
         # Se c'è un'assenza associata, marcala come gestita
-        assenza = Assenza.query.filter_by(turno_id=turno_id).first()
+        assenza = db.session.get(Assenza, turno_id)
         if assenza:
             assenza.gestita = True
         
@@ -739,61 +787,78 @@ def modifica_turno():
 def comunica_assenza():
     try:
         data = request.get_json()
-        turno_id = data.get('id')
+        if not data or 'id' not in data:
+            return jsonify({'success': False, 'message': 'ID turno non fornito'}), 400
+
+        turno_id = data['id']
+        turno = db.session.get(Turno, turno_id)
         
-        turno = Turno.query.get(turno_id)
         if not turno:
-            return jsonify({"success": False, "message": "Turno non trovato"}), 404
+            return jsonify({'success': False, 'message': 'Turno non trovato'}), 404
             
-        # Controlla se il turno è nel passato
-        oggi = datetime.now().date()
-        if turno.data < oggi:
-            return jsonify({
-                "success": False, 
-                "message": "Non è possibile comunicare assenze per turni passati"
-            }), 400
+        # Verifica che l'utente stia comunicando l'assenza per un suo turno
+        if turno.utenza_id != session.get('user_id'):
+            return jsonify({'success': False, 'message': 'Non autorizzato'}), 403
             
-        # Controlla se esiste già una comunicazione di assenza
-        if Assenza.query.filter_by(turno_id=turno_id).first():
-            return jsonify({
-                "success": False,
-                "message": "Hai già comunicato l'assenza per questo turno"
-            }), 400
+        # Verifica che il turno non sia già passato
+        if turno.data < datetime.now().date():
+            return jsonify({'success': False, 'message': 'Non puoi comunicare assenza per un turno passato'}), 400
             
+        # Verifica che non sia già stata comunicata un'assenza
+        if db.session.query(Assenza).filter_by(turno_id=turno_id).first():
+            return jsonify({'success': False, 'message': 'Assenza già comunicata per questo turno'}), 400
+
         # Crea la nuova assenza
-        assenza = Assenza(turno_id=turno_id)
+        assenza = Assenza(
+            turno_id=turno_id,
+            data_comunicazione=datetime.now(),
+            gestita=False
+        )
         db.session.add(assenza)
-        
-        # Trova tutti gli admin
-        admin_users = Utenza.query.filter_by(tipo='admin').all()
-        
-        # Invia email a tutti gli admin
+        db.session.commit()
+
+        # Invia email di notifica agli admin
+        admin_users = db.session.query(Utenza).filter_by(tipo='admin').all()
         for admin in admin_users:
             email_template = f"""
-            <h2>Comunicazione Assenza</h2>
-            <p>Gentile {admin.nome} {admin.cognome},</p>
-            <p>Il dipendente {turno.utenza.nome} {turno.utenza.cognome} ha comunicato la sua assenza per il seguente turno:</p>
-            <ul>
-                <li>Data: {turno.data.strftime('%d/%m/%Y')}</li>
-                <li>Turno: {turno.turno}</li>
-                <li>Tipo: {turno.tipo}</li>
-            </ul>
-            <p>Si consiglia di modificare o eliminare il turno.</p>
+            <h2>Nuova Comunicazione di Assenza</h2>
+            <p>Un dipendente ha comunicato la sua assenza per un turno:</p>
+            
+            <div style="background-color: #f5f5f5; padding: 15px; margin: 15px 0;">
+                <p><strong>Dipendente:</strong> {turno.utenza.nome} {turno.utenza.cognome}</p>
+                <p><strong>Data Turno:</strong> {turno.data.strftime('%d/%m/%Y')}</p>
+                <p><strong>Turno:</strong> {turno.turno}</p>
+                <p><strong>Tipo:</strong> {turno.tipo}</p>
+                <p><strong>Data Comunicazione:</strong> {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
+            </div>
+            
+            <p>È necessario gestire questa assenza il prima possibile.</p>
+            
+            <p style="text-align: center;">
+                <a href="{url_for('gestisci_turni', _external=True)}" style="background-color: #4c1d95; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                    Gestisci Assenza
+                </a>
+            </p>
             """
             
-            send_email(
-                admin.email,
-                f"Comunicazione Assenza - {turno.utenza.nome} {turno.utenza.cognome}",
-                email_template
-            )
-        
-        db.session.commit()
-        return jsonify({"success": True, "message": "Assenza comunicata con successo"}), 200
-        
+            try:
+                send_email(
+                    admin.email,
+                    "Il Boschetto - Nuova Comunicazione di Assenza",
+                    email_template
+                )
+            except Exception as e:
+                app.logger.error(f'Errore nell\'invio email ad admin {admin.email}: {str(e)}')
+
+        return jsonify({'success': True, 'message': 'Assenza comunicata con successo'})
+
     except Exception as e:
         db.session.rollback()
         app.logger.error(f'Errore nella comunicazione dell\'assenza: {str(e)}')
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({
+            'success': False,
+            'message': 'Si è verificato un errore durante la comunicazione dell\'assenza'
+        }), 500
 
 @app.route('/check_assenze', methods=['GET'])
 @login_required
@@ -804,7 +869,7 @@ def check_assenze():
             
         # Trova tutte le assenze non gestite per turni futuri
         oggi = datetime.now().date()
-        assenze = Assenza.query.join(Turno).filter(
+        assenze = db.session.query(Assenza).join(Turno).filter(
             Assenza.gestita == False,
             Turno.data >= oggi
         ).all()
@@ -838,7 +903,7 @@ def marca_assenza_notificata():
         data = request.get_json()
         assenza_id = data.get('id')
         
-        assenza = Assenza.query.get(assenza_id)
+        assenza = db.session.get(Assenza, assenza_id)
         if not assenza:
             return jsonify({"success": False, "message": "Assenza non trovata"}), 404
             
@@ -868,12 +933,12 @@ def modifica_utente():
         if not all([utente_id, tipo, nome, cognome, email]):
             return jsonify({"success": False, "message": "Tutti i campi sono obbligatori"}), 400
 
-        utente = Utenza.query.get(utente_id)
+        utente = db.session.get(Utenza, utente_id)
         if not utente:
             return jsonify({"success": False, "message": "Utente non trovato"}), 404
 
         # Controlla se l'email è già in uso da un altro utente
-        existing_user = Utenza.query.filter(
+        existing_user = db.session.query(Utenza).filter(
             Utenza.email == email,
             Utenza.id != utente_id
         ).first()
@@ -920,6 +985,82 @@ def modifica_utente():
             "success": False,
             "message": "Si è verificato un errore durante la modifica dell'utente"
         }), 500
+
+@app.route('/recupera_password', methods=['POST'])
+def recupera_password():
+    try:
+        # Verifica il CSRF token
+        csrf_token = request.headers.get('X-CSRFToken')
+        if not csrf_token:
+            return jsonify({'success': False, 'message': 'CSRF token mancante'}), 400
+
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'message': 'Dati non forniti'}), 400
+
+        email = data.get('email')
+        if not email:
+            return jsonify({'success': False, 'message': 'Email non fornita'}), 400
+        
+        utente = db.session.query(Utenza).filter_by(email=email).first()
+        if not utente:
+            return jsonify({'success': False, 'message': 'Email non trovata'}), 404
+        
+        # Genera una nuova password casuale
+        password_originale = ''.join(random.choices(string.ascii_letters + string.digits, k=12))
+        
+        # Template per l'email di recupero password
+        template_html = f"""
+        <h2 style="color: #4c1d95; margin-bottom: 20px;">Recupero Credenziali</h2>
+        <p>Gentile {utente.nome},</p>
+        <p>Come richiesto, abbiamo generato delle nuove credenziali di accesso per il tuo account:</p>
+        
+        <div class="info-box">
+            <p><strong>Email:</strong> {email}</p>
+            <p><strong>Nuova Password:</strong> {password_originale}</p>
+        </div>
+        
+        <p>Per la tua sicurezza, ti consigliamo di:</p>
+        <ul style="margin: 15px 0; padding-left: 20px;">
+            <li>Cambiare la password al primo accesso</li>
+            <li>Non condividere le tue credenziali con nessuno</li>
+            <li>Utilizzare una password sicura e unica</li>
+        </ul>
+        
+        <p style="color: #dc2626; margin-top: 20px;">Se non hai richiesto tu il recupero delle credenziali, contatta immediatamente il tuo supervisore.</p>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="{url_for('login', _external=True)}" class="button">
+                Accedi al tuo account
+            </a>
+        </div>
+        """
+        
+        try:
+            # Invia l'email con il nuovo template
+            send_email(
+                email,
+                'Il Boschetto - Recupero Credenziali',
+                template_html
+            )
+        except Exception as e:
+            app.logger.error(f'Errore nell\'invio email: {str(e)}')
+            return jsonify({'success': False, 'message': 'Errore nell\'invio dell\'email'}), 500
+        
+        # Solo dopo aver inviato l'email con successo, salviamo la password hashata nel database
+        try:
+            utente.password = generate_password_hash(password_originale)
+            db.session.commit()
+        except Exception as e:
+            app.logger.error(f'Errore nell\'aggiornamento della password: {str(e)}')
+            return jsonify({'success': False, 'message': 'Errore nell\'aggiornamento della password'}), 500
+        
+        return jsonify({'success': True, 'message': 'Credenziali inviate via email'})
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f'Errore nel recupero password: {str(e)}')
+        return jsonify({'success': False, 'message': 'Errore durante l\'invio delle credenziali'}), 500
 
 if __name__ == "__main__":
     test_smtp_connection()

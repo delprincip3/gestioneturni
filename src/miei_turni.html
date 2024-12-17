@@ -6,43 +6,140 @@
 <div class="container mx-auto px-2 sm:px-4 py-8">
     <h1 class="text-3xl font-bold mb-8 text-center text-gray-800">I Miei Turni</h1>
 
-    <!-- Tabella dei turni -->
-    <div class="bg-white p-4 sm:p-6 rounded-lg shadow-lg overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 table-fixed">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Data</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Turno</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Tipo</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Azioni</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    {% for turno in turni %}
-                    <tr id="turno-{{ turno.id }}" class="hover:bg-gray-50">
-                        <td class="px-3 py-2 text-xs sm:text-sm text-gray-900">{{ turno.data.strftime('%d/%m/%Y') }}</td>
-                        <td class="px-3 py-2 text-xs sm:text-sm text-gray-900">{{ turno.turno }}</td>
-                        <td class="px-3 py-2 text-xs sm:text-sm text-gray-900">{{ turno.tipo }}</td>
-                        <td class="px-3 py-2 text-xs sm:text-sm font-medium">
-                            {% if turno.data >= today %}
-                                {% if not turno.assenza %}
-                                <button onclick="comunicaAssenza('{{ turno.id }}')" class="text-red-600 hover:text-red-900">
-                                    <i class="fas fa-user-times"></i> Comunica Assenza
-                                </button>
+    <!-- Accordion per i filtri -->
+    <div class="mb-8">
+        <button class="w-full bg-violet-100 hover:bg-violet-200 text-violet-800 font-semibold py-3 px-4 rounded-t-lg flex justify-between items-center" onclick="toggleFiltri()">
+            <span>
+                <i class="fas fa-filter mr-2"></i>
+                Filtra Turni
+            </span>
+            <i class="fas fa-chevron-down transition-transform duration-300" id="filtriIcon"></i>
+        </button>
+        <div id="filtriContent" class="hidden bg-white border border-violet-200 rounded-b-lg shadow-lg p-4">
+            <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="space-y-2">
+                    <label for="data" class="block text-sm font-medium text-gray-700">Data</label>
+                    <input type="date" name="data" id="data" value="{{ data_filter }}" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500">
+                </div>
+                <div class="space-y-2">
+                    <label for="turno" class="block text-sm font-medium text-gray-700">Turno</label>
+                    <select name="turno" id="turno" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500">
+                        <option value="">Tutti</option>
+                        <option value="Mattina" {% if turno_filter == 'Mattina' %}selected{% endif %}>Mattina</option>
+                        <option value="Sera" {% if turno_filter == 'Sera' %}selected{% endif %}>Sera</option>
+                        <option value="Doppio Turno" {% if turno_filter == 'Doppio Turno' %}selected{% endif %}>Doppio Turno</option>
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label for="tipo" class="block text-sm font-medium text-gray-700">Tipo</label>
+                    <select name="tipo" id="tipo" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500">
+                        <option value="">Tutti</option>
+                        <option value="Cameriere" {% if tipo_filter == 'Cameriere' %}selected{% endif %}>Cameriere</option>
+                        <option value="Cuoco" {% if tipo_filter == 'Cuoco' %}selected{% endif %}>Cuoco</option>
+                        <option value="Lavapiatti" {% if tipo_filter == 'Lavapiatti' %}selected{% endif %}>Lavapiatti</option>
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label for="stato" class="block text-sm font-medium text-gray-700">Stato</label>
+                    <select name="stato" id="stato" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500">
+                        <option value="">Tutti</option>
+                        <option value="nuovo" {% if stato_filter == 'nuovo' %}selected{% endif %}>Nuovi Turni</option>
+                        <option value="passato" {% if stato_filter == 'passato' %}selected{% endif %}>Turni Passati</option>
+                    </select>
+                </div>
+                <div class="lg:col-span-4 flex justify-end space-x-4">
+                    <a href="{{ url_for('miei_turni') }}" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+                        <i class="fas fa-times mr-2"></i>Reset
+                    </a>
+                    <button type="submit" class="bg-violet-600 text-white px-4 py-2 rounded-lg hover:bg-violet-700 transition-colors">
+                        <i class="fas fa-search mr-2"></i>Cerca
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Accordion per la tabella -->
+    <div class="mt-4">
+        <button class="w-full bg-violet-100 hover:bg-violet-200 text-violet-800 font-semibold py-3 px-4 rounded-t-lg flex justify-between items-center" onclick="toggleTurni()">
+            <span>
+                <i class="fas fa-calendar-alt mr-2"></i>
+                I Miei Turni
+                {% if turni|length > 0 %}
+                <span class="bg-violet-500 text-white text-xs px-2 py-1 rounded-full ml-2">{{ pagination.total }}</span>
+                {% endif %}
+            </span>
+            <i class="fas fa-chevron-down transition-transform duration-300" id="turniIcon"></i>
+        </button>
+        <div id="turniContent" class="hidden bg-white border border-violet-200 rounded-b-lg shadow-lg">
+            {% if turni|length > 0 %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 table-fixed">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Data</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Turno</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Tipo</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for turno in turni %}
+                        <tr id="turno-{{ turno.id }}" class="hover:bg-gray-50">
+                            <td class="px-3 py-2 text-xs sm:text-sm text-gray-900">{{ turno.data.strftime('%d/%m/%Y') }}</td>
+                            <td class="px-3 py-2 text-xs sm:text-sm text-gray-900">{{ turno.turno }}</td>
+                            <td class="px-3 py-2 text-xs sm:text-sm text-gray-900">{{ turno.tipo }}</td>
+                            <td class="px-3 py-2 text-xs sm:text-sm font-medium">
+                                {% if turno.data >= today %}
+                                    {% if not turno.assenza %}
+                                    <button onclick="comunicaAssenza('{{ turno.id }}')" class="text-red-600 hover:text-red-900">
+                                        <i class="fas fa-user-times"></i> Comunica Assenza
+                                    </button>
+                                    {% else %}
+                                    <span class="text-gray-400">
+                                        <i class="fas fa-check"></i> Assenza Comunicata
+                                    </span>
+                                    {% endif %}
                                 {% else %}
-                                <span class="text-gray-400">
-                                    <i class="fas fa-check"></i> Assenza Comunicata
-                                </span>
+                                <span class="text-gray-400">Turno passato</span>
                                 {% endif %}
-                            {% else %}
-                            <span class="text-gray-400">Turno passato</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <!-- Paginazione -->
+            {% if pagination.pages > 1 %}
+            <div class="px-4 py-3 flex items-center justify-between border-t border-gray-200">
+                <div class="flex-1 flex justify-between items-center">
+                    <p class="text-sm text-gray-700">
+                        Mostrando <span class="font-medium">{{ (pagination.page - 1) * pagination.per_page + 1 }}</span>
+                        a <span class="font-medium">{{ min(pagination.page * pagination.per_page, pagination.total) }}</span>
+                        di <span class="font-medium">{{ pagination.total }}</span> turni
+                    </p>
+                    <div class="space-x-2">
+                        {% if pagination.has_prev %}
+                        <a href="{{ url_for('miei_turni', page=pagination.prev_num, data=data_filter, tipo=tipo_filter, turno=turno_filter, stato=stato_filter) }}" 
+                           class="bg-violet-100 text-violet-700 px-3 py-1 rounded hover:bg-violet-200">
+                            <i class="fas fa-chevron-left"></i> Precedente
+                        </a>
+                        {% endif %}
+                        {% if pagination.has_next %}
+                        <a href="{{ url_for('miei_turni', page=pagination.next_num, data=data_filter, tipo=tipo_filter, turno=turno_filter, stato=stato_filter) }}" 
+                           class="bg-violet-100 text-violet-700 px-3 py-1 rounded hover:bg-violet-200">
+                            Successiva <i class="fas fa-chevron-right"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="p-4 text-center text-gray-500">
+                Nessun turno trovato
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -104,5 +201,29 @@ function comunicaAssenza(turnoId) {
         }
     });
 }
+
+// Funzioni per il toggle degli accordion
+function toggleFiltri() {
+    const content = document.getElementById('filtriContent');
+    const icon = document.getElementById('filtriIcon');
+    content.classList.toggle('hidden');
+    icon.classList.toggle('rotate-180');
+}
+
+function toggleTurni() {
+    const content = document.getElementById('turniContent');
+    const icon = document.getElementById('turniIcon');
+    content.classList.toggle('hidden');
+    icon.classList.toggle('rotate-180');
+}
+
+// Mostra la tabella turni all'avvio se ci sono filtri attivi
+document.addEventListener('DOMContentLoaded', function() {
+    const hasFilters = "{{ 'true' if data_filter or tipo_filter or turno_filter or stato_filter else 'false' }}" === "true";
+    if (hasFilters) {
+        toggleTurni();
+        toggleFiltri();
+    }
+});
 </script>
 {% endblock %}

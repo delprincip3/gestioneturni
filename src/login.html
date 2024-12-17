@@ -6,6 +6,8 @@
   <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'">
   <title>boschetto - Login</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style/output.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     input:-webkit-autofill {
       -webkit-box-shadow: 0 0 0 30px white inset !important;
@@ -22,29 +24,31 @@
     <h2 class="text-xl font-semibold text-center mb-4">Accedi al tuo account</h2>
     <form method="post" id="LoginForm" class="space-y-4">
       {{ form.csrf_token }}
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          {% for category, message in messages %}
-            <div class="p-4 rounded-lg {% if category == 'danger' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}">
-              {{ message }}
-            </div>
-          {% endfor %}
-        {% endif %}
-      {% endwith %}
 
       <div class="space-y-2">
         <label for="email" class="block text-gray-700 font-medium">Email</label>
-        {{ form.email(class="bg-white w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-600 text-gray-900", autocomplete="username") }}
+        {{ form.email(class="bg-white w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-600 text-gray-900", autocomplete="username", required=true) }}
       </div>
 
       <div class="space-y-2">
         <label for="password" class="block text-gray-700 font-medium">Password</label>
-        {{ form.password(class="bg-white w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-600 text-gray-900", autocomplete="current-password") }}
+        <div class="relative">
+          {{ form.password(class="bg-white w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-600 text-gray-900 pr-10", autocomplete="current-password", type="password", required=true) }}
+          <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600" onclick="togglePassword()">
+            <i class="fas fa-eye" id="toggleIcon"></i>
+          </button>
+        </div>
       </div>
 
       <button type="submit" class="w-full bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 text-white py-2 rounded-lg transition-all duration-200">
         Login
       </button>
+
+      <div class="text-center">
+        <button type="button" onclick="recuperaPassword()" class="text-violet-600 hover:text-violet-800 text-sm">
+          Password dimenticata?
+        </button>
+      </div>
 
       <div class="mt-4">
         <a class="block text-center bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 text-white py-2 rounded-lg transition-all duration-200" href="{{ url_for('index') }}">
@@ -60,12 +64,132 @@
       window.history.replaceState(null, null, window.location.href);
     }
 
-    // Disabilita il form durante l'invio per prevenire doppi submit
-    document.getElementById('LoginForm').addEventListener('submit', function(e) {
+    // Gestione del form di login
+    document.getElementById('LoginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const email = this.querySelector('input[name="email"]').value;
+      const password = this.querySelector('input[name="password"]').value;
+      
+      if (!email || !password) {
+        Swal.fire({
+          title: 'Errore!',
+          text: 'Email e password sono richiesti',
+          icon: 'error',
+          confirmButtonColor: '#8b5cf6'
+        });
+        return;
+      }
+
       const submitButton = this.querySelector('button[type="submit"]');
       submitButton.disabled = true;
       submitButton.innerHTML = 'Accesso in corso...';
+
+      try {
+        const response = await fetch('/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+          },
+          body: JSON.stringify({
+            email: email,
+            password: password
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          window.location.href = data.redirect;
+        } else {
+          Swal.fire({
+            title: 'Errore!',
+            text: data.message || 'Credenziali errate',
+            icon: 'error',
+            confirmButtonColor: '#8b5cf6'
+          });
+          submitButton.disabled = false;
+          submitButton.innerHTML = 'Login';
+        }
+      } catch (error) {
+        Swal.fire({
+          title: 'Errore!',
+          text: 'Si è verificato un errore durante il login',
+          icon: 'error',
+          confirmButtonColor: '#8b5cf6'
+        });
+        submitButton.disabled = false;
+        submitButton.innerHTML = 'Login';
+      }
     });
+
+    // Toggle visibilità password
+    function togglePassword() {
+      const passwordInput = document.querySelector('input[name="password"]');
+      const toggleIcon = document.getElementById('toggleIcon');
+      
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleIcon.classList.remove('fa-eye');
+        toggleIcon.classList.add('fa-eye-slash');
+      } else {
+        passwordInput.type = 'password';
+        toggleIcon.classList.remove('fa-eye-slash');
+        toggleIcon.classList.add('fa-eye');
+      }
+    }
+
+    // Recupero password
+    function recuperaPassword() {
+      const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+      
+      Swal.fire({
+        title: 'Recupero Password',
+        text: 'Inserisci la tua email per recuperare le credenziali',
+        input: 'email',
+        inputPlaceholder: 'Inserisci la tua email',
+        showCancelButton: true,
+        confirmButtonText: 'Invia',
+        cancelButtonText: 'Annulla',
+        confirmButtonColor: '#8b5cf6',
+        showLoaderOnConfirm: true,
+        preConfirm: async (email) => {
+          try {
+            const response = await fetch('/recupera_password', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+              },
+              body: JSON.stringify({ email: email })
+            });
+            
+            if (!response.ok) {
+              const data = await response.json();
+              throw new Error(data.message || 'Si è verificato un errore');
+            }
+            
+            const data = await response.json();
+            if (!data.success) {
+              throw new Error(data.message);
+            }
+            return data;
+          } catch (error) {
+            Swal.showValidationMessage(error.message || 'Email non trovata');
+          }
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          Swal.fire({
+            title: 'Email Inviata!',
+            text: 'Controlla la tua email per le credenziali di accesso',
+            icon: 'success',
+            confirmButtonColor: '#8b5cf6'
+          });
+        }
+      });
+    }
   </script>
 </body>
 </html>
