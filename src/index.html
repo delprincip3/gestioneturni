@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Il Boschetto - Home</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style/output.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
     <header class="bg-gradient-to-r from-violet-600 to-violet-900 text-white shadow-lg fixed w-full z-50 backdrop-blur-md">
@@ -15,6 +16,9 @@
             </div>
             <nav class="hidden md:flex space-x-6">
                 <a href="{{ url_for('login') }}" class="hover:text-gray-400">Login</a>
+                <button onclick="mostraSupporto()" class="bg-violet-500 hover:bg-violet-600 text-white px-4 py-2 rounded-lg transition-all duration-200">
+                    <i class="fas fa-heart"></i> Sostieni l'App
+                </button>
             </nav>
             <div class="md:hidden">
                 <button class="menu-toggle text-gray-200 hover:text-gray-400 focus:outline-none">
@@ -26,6 +30,9 @@
         </div>
         <nav class="mobile-menu hidden md:hidden bg-gray-800">
             <a href="{{ url_for('login') }}" class="block px-6 py-2 hover:bg-gray-700">Login</a>
+            <button onclick="mostraSupporto()" class="w-full text-left px-6 py-2 hover:bg-gray-700">
+                <i class="fas fa-heart"></i> Sostieni l'App
+            </button>
         </nav>
     </header>
 
@@ -38,7 +45,12 @@
             <div class="max-w-md mx-auto">
                 <h1 class="text-5xl font-bold mb-5">Gestione turni</h1>
                 <p class="mb-8">Benvenuti nell'app di gestione turni dedicata al ristorante Il Boschetto</p>
-                <a href="{{ url_for('login') }}" class="bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200">Login</a>
+                <div class="space-x-4">
+                    <a href="{{ url_for('login') }}" class="bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200">Login</a>
+                    <button onclick="mostraSupporto()" class="bg-gradient-to-r from-violet-500 to-violet-600 hover:from-violet-600 hover:to-violet-700 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200">
+                        <i class="fas fa-heart"></i> Sostieni l'App
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -51,6 +63,41 @@
         document.querySelector('.menu-toggle').addEventListener('click', function() {
             document.querySelector('.mobile-menu').classList.toggle('hidden');
         });
+
+        function mostraSupporto() {
+            Swal.fire({
+                title: 'Sostieni Il Boschetto',
+                html: `
+                    <div class="space-y-4">
+                        <p class="text-gray-600">Il tuo supporto ci aiuta a migliorare l'app e aggiungere nuove funzionalità!</p>
+                        <div class="flex justify-center">
+                            <img src="{{ url_for('static', filename='logoboschetto.jpeg') }}" alt="Il Boschetto Logo" class="w-24 h-24 rounded-full shadow-lg">
+                        </div>
+                    </div>
+                `,
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'Sostieni ora',
+                cancelButtonText: 'Non ora',
+                confirmButtonColor: '#7c3aed',
+                cancelButtonColor: '#6b7280',
+                showClass: {
+                    popup: 'animate__animated animate__fadeInDown'
+                },
+                hideClass: {
+                    popup: 'animate__animated animate__fadeOutUp'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.open('https://revolut.me/luigimt2vd', '_blank');
+                }
+            });
+        }
     </script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
 </body>
 </html>
