@@ -302,13 +302,16 @@ function eliminaUtente(id) {
         buttonsStyling: false
     }).then((result) => {
         if (result.isConfirmed) {
-            const formData = new FormData();
-            formData.append('id', id);
-            formData.append('csrf_token', '{{ csrf_token() }}');
-
             fetch('/elimina_utente', {
                 method: 'POST',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    id: id,
+                    csrf_token: '{{ csrf_token() }}'
+                })
             })
             .then(response => response.json())
             .then(data => {

@@ -329,28 +329,30 @@ def gestisci_utenti():
     utenti = Utenza.query.all()
     return render_template('gestisci_utenti.html', modifica_form=modifica_form, elimina_form=elimina_form,register_form=register_form, utenti=utenti)
 
-
-
 @app.route('/elimina_utente', methods=['POST'])
 def elimina_utente():
-    if 'user_id' not in session:
-        return jsonify({"success": False, "error": "Devi essere loggato per vedere questa pagina."}), 403
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "message": "Dati non forniti"}), 400
 
-    data = request.get_json()
-    utente_id = data.get('id')
-    elimina_form = EliminaUtenteForm()
+        utente_id = data.get('id')
+        if not utente_id:
+            return jsonify({"success": False, "message": "ID utente non fornito"}), 400
 
-    if elimina_form.validate_on_submit():
-        utente = Utenza.query.get(utente_id)
-        if utente:
-            Turno.query.filter_by(utenza_id=utente_id).delete()
-            db.session.delete(utente)
-            db.session.commit()
-            return jsonify({"success": True}), 200
-        else:
-            return jsonify({"success": False, "error": "Utente non trovato."}), 404
-    else:
-        return jsonify({"success": False, "error": "Errore nella validazione del form."}), 400
+        utente = db.session.get(Utenza, utente_id)
+        if not utente:
+            return jsonify({"success": False, "message": "Utente non trovato"}), 404
+
+        db.session.delete(utente)
+        db.session.commit()
+
+        return jsonify({"success": True, "message": "Utente eliminato con successo"})
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f'Errore durante l\'eliminazione dell\'utente: {str(e)}')
+        return jsonify({"success": False, "message": str(e)}), 500
     
 @app.route('/aggiungi_utente', methods=['POST'])
 def aggiungi_utente():
