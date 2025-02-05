@@ -21,6 +21,7 @@ import time
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.image import MIMEImage
 import requests
 from sqlalchemy import or_
 import random
@@ -43,6 +44,9 @@ app.config.update(
     MAIL_TIMEOUT = 30,
     MAIL_DEFAULT_SENDER = ('Il Boschetto - No Reply', 'delprincipeluigimichele@gmail.com')
 )
+
+# Aggiungi funzioni al contesto globale di Jinja2
+app.jinja_env.globals.update(min=min)
 
 mail = Mail(app)
 
@@ -585,19 +589,103 @@ def send_email(to, subject, template_html):
         msg['From'] = app.config['MAIL_DEFAULT_SENDER'][1]
         msg['To'] = to
 
-        # Template HTML base
+        # Template HTML base standard per tutte le email
         html = f"""
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="text-align: center; margin-bottom: 20px;">
-                <img src="cid:logo" alt="Il Boschetto Logo" style="width: 150px;">
-                <h1 style="color: #4c1d95;">Il Boschetto</h1>
+        <!DOCTYPE html>
+        <html lang="it">
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    line-height: 1.6;
+                    margin: 0;
+                    padding: 0;
+                    background-color: #f9fafb;
+                }}
+                .container {{
+                    max-width: 600px;
+                    margin: 0 auto;
+                    padding: 20px;
+                    background-color: #ffffff;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                }}
+                .header {{
+                    text-align: center;
+                    margin-bottom: 30px;
+                    padding: 20px;
+                    background: linear-gradient(to right, #7c3aed, #4c1d95);
+                    border-radius: 8px 8px 0 0;
+                }}
+                .logo {{
+                    width: 120px;
+                    height: 120px;
+                    border-radius: 50%;
+                    margin-bottom: 15px;
+                }}
+                .title {{
+                    color: #ffffff;
+                    font-size: 24px;
+                    margin: 0;
+                }}
+                .content {{
+                    padding: 20px;
+                    color: #374151;
+                }}
+                .info-box {{
+                    background-color: #f3f4f6;
+                    padding: 15px;
+                    border-radius: 6px;
+                    margin: 15px 0;
+                }}
+                .button {{
+                    display: inline-block;
+                    padding: 12px 24px;
+                    background: linear-gradient(to right, #7c3aed, #4c1d95);
+                    color: #ffffff;
+                    text-decoration: none;
+                    border-radius: 6px;
+                    margin: 15px 0;
+                }}
+                .footer {{
+                    text-align: center;
+                    padding: 20px;
+                    color: #6b7280;
+                    font-size: 12px;
+                    border-top: 1px solid #e5e7eb;
+                    margin-top: 30px;
+                }}
+                ul {{
+                    list-style-type: none;
+                    padding: 0;
+                }}
+                li {{
+                    padding: 8px 0;
+                    border-bottom: 1px solid #e5e7eb;
+                }}
+                li:last-child {{
+                    border-bottom: none;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <img src="cid:logo" alt="Il Boschetto Logo" class="logo">
+                    <h1 class="title">Il Boschetto</h1>
+                </div>
+                <div class="content">
+                    {template_html}
+                </div>
+                <div class="footer">
+                    <p>Questa è un'email generata automaticamente, ti preghiamo di non rispondere.</p>
+                    <p>Per assistenza, contatta il tuo supervisore.</p>
+                    <p>© 2024 Il Boschetto - Tutti i diritti riservati</p>
+                </div>
             </div>
-            {template_html}
-            <div style="margin-top: 20px; text-align: center; color: #666; font-size: 12px;">
-                <p>Questa è un'email generata automaticamente, ti preghiamo di non rispondere.</p>
-                <p>© 2024 Il Boschetto</p>
-            </div>
-        </div>
+        </body>
+        </html>
         """
 
         # Aggiungi il contenuto HTML
@@ -605,7 +693,7 @@ def send_email(to, subject, template_html):
 
         # Allega il logo
         with open("src/logoboschetto.jpeg", "rb") as f:
-            logo = MIMEText(f.read(), 'base64', 'utf-8')
+            logo = MIMEImage(f.read())
             logo.add_header('Content-ID', '<logo>')
             logo.add_header('Content-Disposition', 'inline', filename="logoboschetto.jpeg")
             msg.attach(logo)
@@ -659,17 +747,19 @@ def elimina_turno():
         <h2>Notifica Eliminazione Turno</h2>
         <p>Gentile {utente.nome} {utente.cognome},</p>
         <p>Ti informiamo che il tuo turno è stato eliminato:</p>
-        <ul>
-            <li>Data: {turno.data.strftime('%d/%m/%Y')}</li>
-            <li>Turno: {turno.turno}</li>
-            <li>Tipo: {turno.tipo}</li>
-        </ul>
+        <div class="info-box">
+            <ul>
+                <li><strong>Data:</strong> {turno.data.strftime('%d/%m/%Y')}</li>
+                <li><strong>Turno:</strong> {turno.turno}</li>
+                <li><strong>Tipo:</strong> {turno.tipo}</li>
+            </ul>
+        </div>
         <p>Se non hai richiesto questa modifica, contatta immediatamente il tuo supervisore.</p>
         """
         
-        # Prima elimina l'assenza se esiste
-        assenza = db.session.get(Assenza, turno_id)
-        if assenza:
+        # Prima elimina tutte le assenze associate al turno
+        assenze = Assenza.query.filter_by(turno_id=turno_id).all()
+        for assenza in assenze:
             db.session.delete(assenza)
             
         # Poi elimina il turno
