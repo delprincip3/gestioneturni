@@ -154,8 +154,11 @@ document.addEventListener('DOMContentLoaded', function() {
         addUserForm.addEventListener('submit', function(e) {
             e.preventDefault();
             const formData = new FormData(this);
-            fetch('/register', {
+            fetch('/aggiungi_utente', {
                 method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
                 body: formData
             })
             .then(response => response.json())
@@ -165,7 +168,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         title: 'Successo!',
                         text: 'Utente registrato con successo',
                         icon: 'success',
-                        confirmButtonText: 'OK'
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#7c3aed'
                     }).then((result) => {
                         if (result.isConfirmed) {
                             location.reload();
@@ -176,7 +180,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         title: 'Errore!',
                         text: data.message || 'Si è verificato un errore durante la registrazione',
                         icon: 'error',
-                        confirmButtonText: 'OK'
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#7c3aed'
                     });
                 }
             })
@@ -186,7 +191,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     title: 'Errore!',
                     text: 'Si è verificato un errore durante la registrazione',
                     icon: 'error',
-                    confirmButtonText: 'OK'
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#7c3aed'
                 });
             });
         });

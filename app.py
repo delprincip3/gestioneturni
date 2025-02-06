@@ -34,15 +34,15 @@ app.permanent_session_lifetime = timedelta(minutes=5)
 
 # Configurazione email
 app.config.update(
-    MAIL_SERVER = 'smtp.gmail.com',
-    MAIL_PORT = 587,
-    MAIL_USERNAME = 'delprincipeluigimichele@gmail.com',
+    MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com'),
+    MAIL_PORT = int(os.environ.get('MAIL_PORT', 587)),
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME'),
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD'),
-    MAIL_USE_TLS = True,
-    MAIL_USE_SSL = False,
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'True').lower() == 'true',
+    MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL', 'False').lower() == 'true',
     MAIL_MAX_EMAILS = 5,
     MAIL_TIMEOUT = 30,
-    MAIL_DEFAULT_SENDER = ('Il Boschetto - No Reply', 'delprincipeluigimichele@gmail.com')
+    MAIL_DEFAULT_SENDER = ('Il Boschetto - No Reply', os.environ.get('MAIL_USERNAME'))
 )
 
 # Aggiungi funzioni al contesto globale di Jinja2
@@ -51,15 +51,20 @@ app.jinja_env.globals.update(min=min)
 mail = Mail(app)
 
 # Configurazione del database usando variabili d'ambiente
-DB_USERNAME = os.environ.get('DB_USERNAME', 'root')
-DB_PASSWORD = os.environ.get('DB_PASSWORD', 'Luigi2005')
-DB_HOST = os.environ.get('DB_HOST', 'localhost')
+DB_USERNAME = os.environ.get('DB_USERNAME')
+DB_PASSWORD = os.environ.get('DB_PASSWORD')
+DB_HOST = os.environ.get('DB_HOST')
 DB_PORT = os.environ.get('DB_PORT', '3306')
-DB_NAME = os.environ.get('DB_NAME', 'gestioneturni_boschetto')
+DB_NAME = os.environ.get('DB_NAME')
 
-app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+# Costruisci l'URL del database
+if all([DB_USERNAME, DB_PASSWORD, DB_HOST, DB_NAME]):
+    app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+else:
+    raise ValueError("Configurazione del database mancante. Controlla le variabili d'ambiente.")
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = secrets.token_hex(32)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -355,10 +360,8 @@ def elimina_utente():
         return jsonify({"success": False, "message": str(e)}), 500
     
 @app.route('/aggiungi_utente', methods=['POST'])
+@login_required
 def aggiungi_utente():
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'message': 'Non autorizzato'}), 403
-
     try:
         # Verifica CSRF token
         csrf_token = request.headers.get('X-CSRFToken')
@@ -400,34 +403,27 @@ def aggiungi_utente():
 
         # Template email
         template = f"""
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h2 style="color: #6d28d9; text-align: center;">Benvenuto in Il Boschetto!</h2>
-            <p>Gentile {nome},</p>
-            <p>Ti diamo il benvenuto nel nostro team. Di seguito trovi le tue credenziali di accesso al sistema:</p>
-            
-            <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                <p><strong>Email:</strong> {email}</p>
-                <p><strong>Password:</strong> {password}</p>
-            </div>
-            
-            <p>Per accedere al sistema, visita: <a href="http://localhost:2001/login" style="color: #6d28d9;">http://localhost:2001/login</a></p>
-            
-            <p>Per motivi di sicurezza, ti consigliamo di cambiare la password al primo accesso.</p>
-            
-            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-                <p style="color: #6B7280; font-size: 0.875rem;">
-                    Questa è un'email generata automaticamente, ti preghiamo di non rispondere.<br>
-                    Per assistenza, contatta il tuo supervisore.
-                </p>
-            </div>
+        <h2>Benvenuto in Il Boschetto!</h2>
+        <p>Gentile {nome},</p>
+        <p>Ti diamo il benvenuto nel nostro team. Di seguito trovi le tue credenziali di accesso al sistema:</p>
+        
+        <div class="info-box">
+            <ul>
+                <li><strong>Email:</strong> {email}</li>
+                <li><strong>Password:</strong> {password}</li>
+            </ul>
         </div>
+        
+        <p>Per accedere al sistema, visita: <a href="http://localhost:2001/login" class="button">Accedi</a></p>
+        
+        <p>Per motivi di sicurezza, ti consigliamo di cambiare la password al primo accesso.</p>
         """
-
+        
         # Invia email
         email_sent = send_email(
             to=email,
             subject='Il Boschetto - Le tue credenziali di accesso',
-            template=template
+            template_html=template
         )
         
         return jsonify({
@@ -444,7 +440,7 @@ def aggiungi_utente():
     except Exception as e:
         db.session.rollback()
         app.logger.error(f'Errore durante l\'aggiunta dell\'utente: {str(e)}')
-        return jsonify({'success': False, 'message': 'Errore durante l\'aggiunta dell\'utente'}), 500
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/miei_turni')
 def miei_turni():
@@ -1154,7 +1150,30 @@ def recupera_password():
         app.logger.error(f'Errore nel recupero password: {str(e)}')
         return jsonify({'success': False, 'message': 'Errore durante l\'invio delle credenziali'}), 500
 
+def create_default_admin():
+    try:
+        # Verifica se esiste già un utente con l'email specificata
+        admin = Utenza.query.filter_by(email='delprincipeluigimichele@gmail.com').first()
+        if not admin:
+            # Crea l'utente admin di default
+            admin = Utenza(
+                tipo='admin',
+                nome='Luigi Michele',
+                cognome='Del Principe',
+                email='delprincipeluigimichele@gmail.com',
+                password='12345678'
+            )
+            db.session.add(admin)
+            db.session.commit()
+            app.logger.info('Utente admin di default creato con successo')
+    except Exception as e:
+        app.logger.error(f'Errore durante la creazione dell\'utente admin di default: {str(e)}')
+        db.session.rollback()
+
 if __name__ == "__main__":
     test_smtp_connection()
     update_existing_passwords()
+    with app.app_context():
+        db.create_all()
+        create_default_admin()
     app.run(debug=True,port=2001)
