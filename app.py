@@ -100,16 +100,26 @@ class Utenza(db.Model):
 
 def create_default_admin():
     try:
+        # Ottieni le credenziali dell'admin dalle variabili d'ambiente
+        admin_email = os.environ.get('ADMIN_EMAIL')
+        admin_password = os.environ.get('ADMIN_PASSWORD')
+        admin_nome = os.environ.get('ADMIN_NOME')
+        admin_cognome = os.environ.get('ADMIN_COGNOME')
+
+        if not all([admin_email, admin_password, admin_nome, admin_cognome]):
+            app.logger.error('Credenziali admin mancanti nel file .env')
+            return False
+
         # Verifica se esiste già un utente con l'email specificata
-        admin = Utenza.query.filter_by(email='delprincipeluigimichele@gmail.com').first()
+        admin = Utenza.query.filter_by(email=admin_email).first()
         if not admin:
             # Crea l'utente admin di default
             admin = Utenza(
                 tipo='admin',
-                nome='Luigi Michele',
-                cognome='Del Principe',
-                email='delprincipeluigimichele@gmail.com',
-                password='12345678'  # La password verrà hashata nel modello
+                nome=admin_nome,
+                cognome=admin_cognome,
+                email=admin_email,
+                password=admin_password  # La password verrà hashata nel modello
             )
             db.session.add(admin)
             db.session.commit()
@@ -173,7 +183,8 @@ def admin_required(f):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    support_link = os.environ.get('SUPPORT_LINK', 'https://revolut.me/luigimt2vd')
+    return render_template('index.html', support_link=support_link)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():

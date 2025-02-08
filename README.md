@@ -6,10 +6,12 @@ Sistema di gestione turni per il ristorante Il Boschetto. Un'applicazione web mo
 
 ### Autenticazione e Sicurezza
 - Sistema di login sicuro con protezione CSRF
-- Gestione password con hashing sicuro
-- Sistema di recupero password via email
-- Sessioni utente protette
+- Gestione password con hashing sicuro (pbkdf2:sha256)
+- Sistema di recupero password via email con generazione password casuale
+- Sessioni utente protette (durata 5 minuti)
 - Ruoli utente (admin/user) con autorizzazioni differenziate
+- Rate limiting per prevenire attacchi brute force
+- Logging di sicurezza con rotazione dei file
 
 ### Gestione Utenti (Admin)
 - Dashboard admin dedicata
@@ -20,15 +22,19 @@ Sistema di gestione turni per il ristorante Il Boschetto. Un'applicazione web mo
   - Creazione nuovo account
   - Modifica dati utente
   - Reset password
+  - Cambio password
 
 ### Gestione Turni (Admin)
 - Creazione e assegnazione turni
 - Visualizzazione turni in formato tabella con:
   - Filtri avanzati per data, tipo turno, ruolo, utente
-  - Paginazione intelligente
-  - Ordinamento colonne
+  - Paginazione intelligente (10 turni per pagina)
+  - Ordinamento per data
 - Modifica e eliminazione turni
-- Gestione assenze del personale
+- Gestione assenze del personale con:
+  - Notifiche immediate agli admin
+  - Sistema di marcatura assenze come gestite
+  - Storico comunicazioni
 - Sistema di notifiche email per:
   - Nuovi turni assegnati
   - Modifiche ai turni
@@ -37,19 +43,19 @@ Sistema di gestione turni per il ristorante Il Boschetto. Un'applicazione web mo
 
 ### Area Utente
 - Dashboard personalizzata
-- Visualizzazione turni personali con filtri
+- Visualizzazione turni personali con filtri avanzati
 - Sistema di comunicazione assenze
 - Gestione profilo personale
-- Cambio password sicuro
+- Cambio password sicuro con notifica email
 
 ### Interfaccia Utente
-- Design responsive e moderno
+- Design responsive e moderno con Tailwind CSS
 - Tema personalizzato con i colori del brand
 - Componenti UI ottimizzati:
   - Menu di navigazione adattivo
   - Accordion per sezioni collassabili
   - Modal per azioni importanti
-  - Toast notifications
+  - Toast notifications con SweetAlert2
   - Form validati lato client e server
 - Feedback visivi per tutte le azioni
 
@@ -61,8 +67,11 @@ Sistema di gestione turni per il ristorante Il Boschetto. Un'applicazione web mo
 - SQLAlchemy ORM
 - Flask-Mail per email
 - Flask-WTF per form e CSRF
-- PyMySQL per database MySQL
+- Flask-Migrate per migrazioni database
+- Flask-Limiter per rate limiting
 - Python-dotenv per configurazione
+- Psycopg2-binary per PostgreSQL
+- Gunicorn per server WSGI
 
 ### Frontend
 - HTML5 + CSS3
@@ -73,7 +82,7 @@ Sistema di gestione turni per il ristorante Il Boschetto. Un'applicazione web mo
 - JavaScript ES6+
 
 ### Database
-- MySQL 8.0+
+- PostgreSQL 16+
 
 ## Installazione
 
@@ -111,7 +120,7 @@ cp .env.example .env
 DB_USERNAME=your_db_username
 DB_PASSWORD=your_db_password
 DB_HOST=localhost
-DB_PORT=3306
+DB_PORT=5432
 DB_NAME=gestioneturni_boschetto
 
 # Email (Gmail)
@@ -121,6 +130,12 @@ MAIL_SERVER=smtp.gmail.com
 MAIL_PORT=587
 MAIL_USE_TLS=True
 MAIL_USE_SSL=False
+
+# Admin di Default
+ADMIN_EMAIL=your_admin_email
+ADMIN_PASSWORD=your_admin_password
+ADMIN_NOME=your_admin_name
+ADMIN_COGNOME=your_admin_surname
 ```
 
 7. Inizializza il database:
@@ -138,12 +153,29 @@ flask run --port=2001
 npm run dev
 ```
 
+## Deployment su Render
+
+1. Crea un nuovo database PostgreSQL su Render
+2. Configura le seguenti variabili d'ambiente nel web service:
+   - Tutte le variabili DB_* dal database PostgreSQL creato
+   - MAIL_* per la configurazione email
+   - ADMIN_* per le credenziali dell'amministratore
+   - PYTHON_VERSION=3.12.1
+   - FLASK_APP=app.py
+   - FLASK_ENV=production
+   - SECRET_KEY (generato automaticamente)
+
+3. Il file `build.sh` si occuperà di:
+   - Installare le dipendenze Python
+   - Installare le dipendenze npm
+   - Compilare il CSS
+   - Eseguire le migrazioni del database
+
+4. Il comando di start `gunicorn app:app` avvierà l'applicazione
+
 ## Utilizzo
 
-1. Accedi come admin:
-   - Email: admin@example.com
-   - Password: password
-
+1. Configura le credenziali dell'amministratore nel file `.env`
 2. Crea nuovi utenti dalla sezione "Gestione Utenti"
 3. Assegna i turni dalla sezione "Gestione Turni"
 4. Gli utenti riceveranno notifiche email per ogni azione rilevante
