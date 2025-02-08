@@ -57,29 +57,48 @@ DB_HOST = os.environ.get('DB_HOST')
 DB_PORT = os.environ.get('DB_PORT', '5432')  # PostgreSQL usa la porta 5432 di default
 DB_NAME = os.environ.get('DB_NAME')
 
-# Costruisci l'URL del database
-if all([DB_USERNAME, DB_PASSWORD, DB_HOST, DB_NAME]):
-    app.config['SQLALCHEMY_DATABASE_URI'] = f"postgresql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-else:
-    raise ValueError("Configurazione del database mancante. Controlla le variabili d'ambiente.")
-
+# Configurazione del database
+app.config['SQLALCHEMY_DATABASE_URI'] = f"postgresql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
-app.config['SESSION_COOKIE_SECURE'] = True
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
+# Chiave segreta per la sessione
+app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(16))
+
+# Inizializzazione delle estensioni
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-
 csrf = CSRFProtect(app)
-
 limiter = Limiter(
+    get_remote_address,
     app=app,
-    key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"]
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
 )
+
+def create_default_admin():
+    try:
+        # Verifica se esiste già un utente con l'email specificata
+        admin = Utenza.query.filter_by(email='delprincipeluigimichele@gmail.com').first()
+        if not admin:
+            # Crea l'utente admin di default
+            admin = Utenza(
+                tipo='admin',
+                nome='Luigi Michele',
+                cognome='Del Principe',
+                email='delprincipeluigimichele@gmail.com',
+                password='12345678'
+            )
+            db.session.add(admin)
+            db.session.commit()
+            app.logger.info('Utente admin di default creato con successo')
+    except Exception as e:
+        app.logger.error(f'Errore durante la creazione dell\'utente admin di default: {str(e)}')
+        db.session.rollback()
+
+# Creazione delle tabelle e dell'admin di default
+with app.app_context():
+    db.create_all()
+    create_default_admin()
 
 # Non è necessario un context processor per il CSRF token
 
@@ -1149,26 +1168,6 @@ def recupera_password():
         db.session.rollback()
         app.logger.error(f'Errore nel recupero password: {str(e)}')
         return jsonify({'success': False, 'message': 'Errore durante l\'invio delle credenziali'}), 500
-
-def create_default_admin():
-    try:
-        # Verifica se esiste già un utente con l'email specificata
-        admin = Utenza.query.filter_by(email='delprincipeluigimichele@gmail.com').first()
-        if not admin:
-            # Crea l'utente admin di default
-            admin = Utenza(
-                tipo='admin',
-                nome='Luigi Michele',
-                cognome='Del Principe',
-                email='delprincipeluigimichele@gmail.com',
-                password='12345678'
-            )
-            db.session.add(admin)
-            db.session.commit()
-            app.logger.info('Utente admin di default creato con successo')
-    except Exception as e:
-        app.logger.error(f'Errore durante la creazione dell\'utente admin di default: {str(e)}')
-        db.session.rollback()
 
 @app.route('/src/<path:filename>')
 def serve_static(filename):
