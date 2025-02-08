@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from datetime import timedelta, datetime
@@ -1169,6 +1169,10 @@ def create_default_admin():
     except Exception as e:
         app.logger.error(f'Errore durante la creazione dell\'utente admin di default: {str(e)}')
         db.session.rollback()
+
+@app.route('/src/<path:filename>')
+def serve_static(filename):
+    return send_from_directory('src', filename)
 
 if __name__ == "__main__":
     test_smtp_connection()
