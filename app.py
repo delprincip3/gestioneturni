@@ -75,33 +75,6 @@ limiter = Limiter(
     storage_uri="memory://"
 )
 
-def create_default_admin():
-    try:
-        # Verifica se esiste già un utente con l'email specificata
-        admin = Utenza.query.filter_by(email='delprincipeluigimichele@gmail.com').first()
-        if not admin:
-            # Crea l'utente admin di default
-            admin = Utenza(
-                tipo='admin',
-                nome='Luigi Michele',
-                cognome='Del Principe',
-                email='delprincipeluigimichele@gmail.com',
-                password='12345678'
-            )
-            db.session.add(admin)
-            db.session.commit()
-            app.logger.info('Utente admin di default creato con successo')
-    except Exception as e:
-        app.logger.error(f'Errore durante la creazione dell\'utente admin di default: {str(e)}')
-        db.session.rollback()
-
-# Creazione delle tabelle e dell'admin di default
-with app.app_context():
-    db.create_all()
-    create_default_admin()
-
-# Non è necessario un context processor per il CSRF token
-
 class Utenza(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     tipo = db.Column(db.String(50), nullable=False)
@@ -120,6 +93,36 @@ class Utenza(db.Model):
             self.password = generate_password_hash(password)
         else:
             self.password = password
+
+def create_default_admin():
+    try:
+        # Verifica se esiste già un utente con l'email specificata
+        admin = Utenza.query.filter_by(email='delprincipeluigimichele@gmail.com').first()
+        if not admin:
+            # Crea l'utente admin di default
+            admin = Utenza(
+                tipo='admin',
+                nome='Luigi Michele',
+                cognome='Del Principe',
+                email='delprincipeluigimichele@gmail.com',
+                password='12345678'  # La password verrà hashata nel modello
+            )
+            db.session.add(admin)
+            db.session.commit()
+            app.logger.info('Utente admin di default creato con successo')
+            return True
+        return False
+    except Exception as e:
+        app.logger.error(f'Errore durante la creazione dell\'utente admin di default: {str(e)}')
+        db.session.rollback()
+        return False
+
+# Creazione delle tabelle e dell'admin di default
+with app.app_context():
+    db.create_all()
+    create_default_admin()
+
+# Non è necessario un context processor per il CSRF token
 
 class Turno(db.Model):
     id = db.Column(db.Integer, primary_key=True)
