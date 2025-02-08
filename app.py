@@ -33,17 +33,21 @@ app = Flask(__name__, template_folder='src', static_folder='src')
 app.permanent_session_lifetime = timedelta(minutes=5)
 
 # Configurazione email
-app.config.update(
-    MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com'),
-    MAIL_PORT = int(os.environ.get('MAIL_PORT', 587)),
-    MAIL_USERNAME = os.environ.get('MAIL_USERNAME'),
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD'),
-    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'True').lower() == 'true',
-    MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL', 'False').lower() == 'true',
-    MAIL_MAX_EMAILS = 5,
-    MAIL_TIMEOUT = 30,
-    MAIL_DEFAULT_SENDER = ('Il Boschetto - No Reply', os.environ.get('MAIL_USERNAME'))
-)
+MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
+MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
+
+if not MAIL_USERNAME or not MAIL_PASSWORD:
+    app.logger.error("Configurazione email mancante. Assicurati che MAIL_USERNAME e MAIL_PASSWORD siano impostati nelle variabili d'ambiente.")
+
+app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True').lower() == 'true'
+app.config['MAIL_USE_SSL'] = os.environ.get('MAIL_USE_SSL', 'False').lower() == 'true'
+app.config['MAIL_USERNAME'] = MAIL_USERNAME
+app.config['MAIL_PASSWORD'] = MAIL_PASSWORD
+app.config['MAIL_MAX_EMAILS'] = 5
+app.config['MAIL_TIMEOUT'] = 30
+app.config['MAIL_DEFAULT_SENDER'] = ('Il Boschetto - No Reply', MAIL_USERNAME)
 
 # Aggiungi funzioni al contesto globale di Jinja2
 app.jinja_env.globals.update(min=min)
