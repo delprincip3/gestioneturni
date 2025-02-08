@@ -34,4 +34,6 @@ services:
       - key: MAIL_USERNAME
         sync: false
       - key: MAIL_PASSWORD
-        sync: false 
+        sync: false
+    databases:
+      - name: gestioneturni-boschetto-db 
