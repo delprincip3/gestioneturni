@@ -142,4 +142,61 @@ SUPPORT_LINK=your_support_link
 ```
 
 7. Inizializza il database:
+```bash
+flask db upgrade
 ```
+
+8. Avvia il server di sviluppo:
+```bash
+flask run --port=2001
+```
+
+9. In un altro terminale, avvia il compilatore CSS:
+```bash
+npm run dev
+```
+
+## Deployment su Render
+
+1. Crea un nuovo database PostgreSQL su Render
+2. Configura le seguenti variabili d'ambiente nel web service:
+   - Tutte le variabili DB_* dal database PostgreSQL creato
+   - MAIL_* per la configurazione email
+   - ADMIN_* per le credenziali dell'amministratore
+   - SUPPORT_LINK per il link di supporto
+   - PYTHON_VERSION=3.12.1
+   - FLASK_APP=app.py
+   - FLASK_ENV=production
+   - SECRET_KEY (generato automaticamente)
+
+3. Il file `build.sh` si occuperà di:
+   - Installare le dipendenze Python
+   - Installare le dipendenze npm
+   - Compilare il CSS
+   - Eseguire le migrazioni del database
+
+4. Il comando di start `gunicorn app:app` avvierà l'applicazione
+
+## Utilizzo
+
+1. Configura le credenziali dell'amministratore nel file `.env`
+2. Crea nuovi utenti dalla sezione "Gestione Utenti"
+3. Assegna i turni dalla sezione "Gestione Turni"
+4. Gli utenti riceveranno notifiche email per ogni azione rilevante
+5. Il link di supporto sarà disponibile nell'header dell'applicazione
+
+## Contribuire
+
+1. Fai il fork del repository
+2. Crea un branch per la tua feature (`git checkout -b feature/nome-feature`)
+3. Committa i tuoi cambiamenti (`git commit -am 'Aggiungi feature'`)
+4. Pusha al branch (`git push origin feature/nome-feature`)
+5. Crea una Pull Request
+
+## Supporto
+
+L'applicazione include una funzionalità di supporto che permette agli utenti di contribuire al suo sviluppo. Il link di supporto è personalizzabile attraverso la variabile d'ambiente `SUPPORT_LINK` e sarà visibile nell'header dell'applicazione.
+
+## Licenza
+
+Copyright © 2024 - Tutti i diritti riservati da Luigi Michele Del Principe
