@@ -54,12 +54,12 @@ mail = Mail(app)
 DB_USERNAME = os.environ.get('DB_USERNAME')
 DB_PASSWORD = os.environ.get('DB_PASSWORD')
 DB_HOST = os.environ.get('DB_HOST')
-DB_PORT = os.environ.get('DB_PORT', '3306')
+DB_PORT = os.environ.get('DB_PORT', '5432')  # PostgreSQL usa la porta 5432 di default
 DB_NAME = os.environ.get('DB_NAME')
 
 # Costruisci l'URL del database
 if all([DB_USERNAME, DB_PASSWORD, DB_HOST, DB_NAME]):
-    app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    app.config['SQLALCHEMY_DATABASE_URI'] = f"postgresql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 else:
     raise ValueError("Configurazione del database mancante. Controlla le variabili d'ambiente.")
 

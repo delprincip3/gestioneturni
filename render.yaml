@@ -20,7 +20,7 @@ services:
       - key: DB_HOST
         sync: false
       - key: DB_PORT
-        sync: false
+        value: 5432
       - key: DB_NAME
         sync: false
       - key: MAIL_SERVER
